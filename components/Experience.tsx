@@ -7,6 +7,8 @@ import Nav from "./Nav";
 import Hero from "./Hero";
 import CollectionTeaser from "./CollectionTeaser";
 import WhyDifferent from "./WhyDifferent";
+import ProductComparison from "./ProductComparison";
+import Guarantees from "./Guarantees";
 
 /** True once the opening logo sequence has finished. */
 const IntroContext = createContext(false);
@@ -24,6 +26,8 @@ export default function Experience() {
           <Hero />
           <CollectionTeaser />
           <WhyDifferent />
+          <ProductComparison />
+          <Guarantees />
         </main>
       </IntroContext.Provider>
     </SmoothScroll>
