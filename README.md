@@ -47,7 +47,8 @@ components/
   SmoothScroll.tsx        # provider Lenis <-> GSAP ScrollTrigger
   Nav.tsx                 # barra minimale, entra a fine intro
   Hero.tsx                # ⭐ pin + timeline cinematografica + SplitText
-  CollectionTeaser.tsx    # sezione successiva (prova l'handoff continuo)
+  CollectionTeaser.tsx    # sezione "La Collezione"
+  WhyDifferent.tsx        # ⭐ sezione "Perché è diverso" — 4 card a ventaglio
 public/
   videos/hero.mp4|.webm   # video originale (forward, ottimizzato per il web)
   images/hero-poster.jpg  # poster / OG image
