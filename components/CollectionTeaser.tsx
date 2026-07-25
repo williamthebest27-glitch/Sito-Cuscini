@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 const ITEMS = [
@@ -51,6 +52,19 @@ export default function CollectionTeaser() {
           </motion.article>
         ))}
       </div>
+
+      <motion.div
+        className="teaser__cta"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-10%" }}
+        transition={{ duration: 0.9, ease, delay: 0.15 }}
+      >
+        <Link href="/collezione" className="teaser__cta-link">
+          Vedi tutta la collezione
+          <span aria-hidden="true">→</span>
+        </Link>
+      </motion.div>
     </section>
   );
 }
