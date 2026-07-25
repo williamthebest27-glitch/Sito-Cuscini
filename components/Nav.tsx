@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { useIntroDone } from "./Experience";
+import { useIntroDone } from "./introContext";
+
+const MotionLink = motion.create(Link);
 
 const LINKS = [
-  { label: "Collezione", href: "#collezione" },
-  { label: "Perché", href: "#perche" },
-  { label: "Materiali", href: "#materiali" },
+  { label: "Collezione", href: "/collezione" },
+  { label: "Perché", href: "/#perche" },
+  { label: "Materiali", href: "/#materiali" },
 ];
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -20,32 +23,37 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.8, ease } },
 };
 
-export default function Nav() {
+/**
+ * @param revealed  Force the nav visible immediately (sub-pages without the
+ *                  opening intro). On the homepage it follows the intro.
+ */
+export default function Nav({ revealed }: { revealed?: boolean }) {
   const introDone = useIntroDone();
+  const show = revealed ?? introDone;
 
   return (
     <motion.header
       className="nav"
       variants={container}
       initial="hidden"
-      animate={introDone ? "show" : "hidden"}
+      animate={show ? "show" : "hidden"}
     >
-      <motion.a variants={item} href="#" className="nav__brand" aria-label="The Double Twenty — home">
+      <MotionLink variants={item} href="/" className="nav__brand" aria-label="The Double Twenty — home">
         <span className="nav__brand-the">The</span>
         <span className="nav__brand-name">Double Twenty</span>
-      </motion.a>
+      </MotionLink>
 
       <nav className="nav__links" aria-label="Navigazione principale">
         {LINKS.map((l) => (
-          <motion.a key={l.href} variants={item} href={l.href} className="nav__link">
+          <MotionLink key={l.href} variants={item} href={l.href} className="nav__link">
             {l.label}
-          </motion.a>
+          </MotionLink>
         ))}
       </nav>
 
-      <motion.a variants={item} href="#collezione" className="nav__cta">
+      <MotionLink variants={item} href="/collezione" className="nav__cta">
         Acquista
-      </motion.a>
+      </MotionLink>
     </motion.header>
   );
 }
