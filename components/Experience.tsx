@@ -1,16 +1,18 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { useState } from "react";
+import { IntroContext, useIntroDone } from "./introContext";
 import SmoothScroll from "./SmoothScroll";
 import Intro from "./Intro";
 import Nav from "./Nav";
 import Hero from "./Hero";
 import CollectionTeaser from "./CollectionTeaser";
 import WhyDifferent from "./WhyDifferent";
+import ProductComparison from "./ProductComparison";
+import Guarantees from "./Guarantees";
 
-/** True once the opening logo sequence has finished. */
-const IntroContext = createContext(false);
-export const useIntroDone = () => useContext(IntroContext);
+/** Re-exported for backwards compatibility. */
+export { useIntroDone };
 
 export default function Experience() {
   const [introDone, setIntroDone] = useState(false);
@@ -24,6 +26,8 @@ export default function Experience() {
           <Hero />
           <CollectionTeaser />
           <WhyDifferent />
+          <ProductComparison />
+          <Guarantees />
         </main>
       </IntroContext.Provider>
     </SmoothScroll>

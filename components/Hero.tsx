@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
+import { hasIntroPlayed } from "@/lib/introState";
 
 export default function Hero() {
   const root = useRef<HTMLElement>(null);
@@ -25,6 +26,9 @@ export default function Hero() {
     const video = videoRef.current;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // First visit plays the film; on return visits (intro already seen) the
+    // hero shows its still poster and the headline reveals straight away.
+    const seen = hasIntroPlayed();
 
     // ---- Reduced motion: still frame + text visible, no autoplay ----
     if (reduce) {
@@ -34,7 +38,7 @@ export default function Hero() {
     }
 
     gsap.registerPlugin(ScrollTrigger, SplitText);
-    video?.play().catch(() => {});
+    if (!seen) video?.play().catch(() => {});
 
     // Prevent FOUC: hide the copy until the reveal
     gsap.set([...actions], { autoAlpha: 0 });
@@ -71,10 +75,16 @@ export default function Hero() {
         gsap.set(split.chars, { yPercent: 120 });
         gsap.set(actions, { autoAlpha: 0, y: 24 });
 
-        // The headline + CTAs reveal when the product film reaches its end and stops.
-        video?.addEventListener("ended", onEnded);
-        // Failsafe: if autoplay is blocked / 'ended' never fires, reveal anyway.
-        failsafe = setTimeout(revealText, (((video && video.duration) || 6) + 6) * 1000);
+        if (seen) {
+          // Return visit: no film playback — show the poster and reveal now.
+          video?.pause();
+          revealText();
+        } else {
+          // The headline + CTAs reveal when the product film reaches its end and stops.
+          video?.addEventListener("ended", onEnded);
+          // Failsafe: if autoplay is blocked / 'ended' never fires, reveal anyway.
+          failsafe = setTimeout(revealText, (((video && video.duration) || 6) + 6) * 1000);
+        }
 
         // ---- Scroll: the stopped film shrinks into a card and hands off ----
         const stl = gsap.timeline({
@@ -112,9 +122,14 @@ export default function Hero() {
         build();
       }
 
-      // Re-split on resize so line breaks and masks stay accurate
+      // Re-split on resize so line breaks and masks stay accurate.
+      // Ignore height-only changes (mobile browser chrome show/hide) so the
+      // pinned timeline doesn't rebuild and jump mid-scroll.
       let rt: ReturnType<typeof setTimeout>;
+      let lastW = window.innerWidth;
       const onResize = () => {
+        if (window.innerWidth === lastW) return;
+        lastW = window.innerWidth;
         clearTimeout(rt);
         rt = setTimeout(() => {
           split?.revert();
@@ -152,7 +167,6 @@ export default function Hero() {
           ref={videoRef}
           className="hero__video"
           poster="/images/hero-poster.jpg"
-          autoPlay
           muted
           playsInline
           preload="metadata"
