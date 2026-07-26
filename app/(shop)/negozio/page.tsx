@@ -44,8 +44,8 @@ export default async function NegozioPage() {
           Il comfort, <em>in ogni forma.</em>
         </h1>
         <p className="shop-hero__note">
-          Ogni cuscino è studiato attorno a un modo di dormire. Filtra per altezza,
-          federa e categoria e trova il tuo riposo su misura.
+          Cuscini ergonomici in memory foam, Made in Italy. Cerca per nome o filtra
+          per categoria e trova il tuo riposo su misura.
         </p>
       </header>
 

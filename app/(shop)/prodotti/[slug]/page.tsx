@@ -73,9 +73,9 @@ export default async function ProductPage({
       <ProductDetail product={product} />
 
       <div className="pdp-blocks">
-        <section>
+        <section className={product.features.length ? "" : "pdp-blocks__wide"}>
           <h2 className="block__title">Descrizione</h2>
-          <p className="prose">{product.description}</p>
+          <p className="prose prose--lines">{product.description}</p>
           {product.materials.length ? (
             <div className="chips" style={{ marginTop: "1.2rem" }}>
               {product.materials.map((m) => (
@@ -87,16 +87,18 @@ export default async function ProductPage({
           ) : null}
         </section>
 
-        <section>
-          <h2 className="block__title">Caratteristiche</h2>
-          <ul className="feature-list">
-            {product.features.map((f) => (
-              <li key={f}>
-                <IconCheck /> {f}
-              </li>
-            ))}
-          </ul>
-        </section>
+        {product.features.length ? (
+          <section>
+            <h2 className="block__title">Caratteristiche</h2>
+            <ul className="feature-list">
+              {product.features.map((f) => (
+                <li key={f}>
+                  <IconCheck /> {f}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section className="pdp-blocks__wide">
           <h2 className="block__title">Specifiche tecniche</h2>

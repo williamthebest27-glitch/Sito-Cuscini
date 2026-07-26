@@ -14,97 +14,70 @@ codice**. Ci sono due negozi indipendenti:
 
 ## 1) `/negozio` — modifiche in `lib/shop/data.ts`
 
-> **SKU = ASIN Amazon.** Ogni variante usa l'ASIN come SKU (es. `B0FR6HG72B`),
+> **1 prodotto = 1 ASIN.** Ogni prodotto rispecchia 1:1 un'inserzione Amazon
+> (titolo, descrizione e prezzo identici) e lo **SKU è l'ASIN** (es. `B0FR6HG72B`),
 > così MCF evade con lo stesso identificatore. Se il tuo Seller SKU differisce
 > dall'ASIN, mappalo in `AMAZON_MCF_SKU_MAP` (vedi `.env.example`).
 
-Ogni prodotto ha una o più **varianti** (SKU). Il prezzo, l'offerta e la giacenza
-sono **per variante**, dentro la funzione `variant(...)`:
+Ogni prodotto è un blocco `prod({ ... })`. I campi principali:
 
 ```ts
-variant("B0FR6HG72B", { colore: "bamboo" }, 3189, { stock: 120 }),
-//        SKU=ASIN      federa scelta         prezzo   giacenza
-//                                            (31,89€)
+prod({
+  id: "onda-bamboo",                 // id interno univoco
+  slug: "cervicale-doppia-onda-bamboo", // → /prodotti/<slug>
+  sku: "B0FR6HG72B",                 // = ASIN Amazon
+  name: "The Double Twenty - Cuscino Cervicale ...", // titolo Amazon esatto
+  tagline: "Frase breve per la card.",
+  categoryId: "cervicale",           // deve esistere in CATEGORIES
+  price: 3189,                        // in centesimi → 31,89 €
+  bullets: [                          // = descrizione (bullet Amazon), uno per riga
+    "SUPPORTO: ...",
+    "2 ALTEZZE: ...",
+  ],
+  specs: [{ label: "Dimensione", value: "40 × 70 cm" }],
+  materials: ["Memory foam", "Bamboo"],
+  tone: T.sand,                       // colore del placeholder immagine
+  createdAt: "2025-03-01",
+  featured: true,                     // opzionale
+}),
 ```
-Gli assi possibili sono `{ misura: "..." }` (etichetta **Altezza**, es. "10","13","15")
-e `{ colore: "..." }` (etichetta **Federa**, es. "bamboo","aloe","silver","cotone").
-I prodotti a variante unica usano `options: []` e `variant("ASIN", {}, prezzo, {...})`.
 
 ### Cambiare un prezzo
-Modifica il numero del prezzo (in centesimi). Es. a 27,90 €:
+Modifica `price` (in centesimi). Es. a 27,90 €:
 ```ts
-variant("B0FR6HG72B", { colore: "bamboo" }, 2790, { stock: 120 }),
+price: 2790,
 ```
 
 ### Mettere in offerta (badge −%)
-Aggiungi `compareAt` (prezzo pieno barrato) **maggiore** del prezzo. Lo sconto %
-e il badge si calcolano da soli:
+Aggiungi `compareAt` al blocco `prod({...})` (prezzo pieno barrato, maggiore di
+`price`); lo sconto % e il badge si calcolano da soli. Nota: `compareAt` va
+passato alla variante — apri `data.ts`, nella funzione `prod` la variante è
+`{ sku, options: {}, price, stock }`: aggiungi `compareAtPrice`:
 ```ts
-variant("B0FR6HG72B", { colore: "bamboo" }, 2790, { compareAt: 3189, stock: 120 }),
-// mostra 27,90 € con 31,89 € barrato e badge −13%
+variants: [{ sku: p.sku, options: {}, price: p.price, compareAtPrice: 3189, stock: 100 }],
 ```
-Per **togliere** l'offerta: rimuovi `compareAt`.
+(Oppure aggiungi un campo `compareAt` a `ProdInput` e passalo lì.)
 
 ### Segnare "esaurito"
-Metti `stock: 0`. Sotto le 5 unità compare "Ultimi N pezzi"; a 0 diventa "Esaurito"
-e il pulsante si disabilita.
-```ts
-variant("B0H26LC3FH", { colore: "cotone" }, 2657, { stock: 0 }),
-```
+Nella variante dentro `prod`, metti `stock: 0`. Sotto le 5 unità compare
+"Ultimi N pezzi"; a 0 diventa "Esaurito" e il pulsante si disabilita.
 
 ### Badge "Novità" / "In evidenza"
-Sono proprietà **del prodotto** (non della variante):
+Sono proprietà del blocco `prod({...})`:
 ```ts
-{
-  id: "aurora",
-  // ...
-  isNew: true,     // badge "Novità" + spinta nell'ordinamento "Novità"
-  featured: true,  // spinta nell'ordinamento "Rilevanza"
-}
+isNew: true,     // badge "Novità" + spinta nell'ordinamento "Novità"
+featured: true,  // spinta nell'ordinamento "Rilevanza"
 ```
 
-### Cambiare nome, sottotitolo, descrizione, ecc.
-Sempre sul prodotto: `name`, `tagline` (frase breve), `description` (testo lungo),
-`features` (elenco caratteristiche), `specs` (tabella `{ label, value }`),
-`materials` (chip).
+### Cambiare titolo, descrizione, ecc.
+Nel blocco `prod`: `name` (titolo), `tagline` (frase breve card), `bullets`
+(descrizione, un punto per riga), `specs` (tabella), `materials` (chip).
 
 ### Aggiungere un nuovo prodotto
-Copia un blocco esistente e cambia i campi. **Regole:** `id`, `slug` e ogni `sku`
-devono essere **univoci**. `categoryId` deve esistere in `CATEGORIES` (vedi sotto).
-Struttura minima:
-```ts
-{
-  id: "nuovo-id",
-  slug: "nuovo-slug",           // diventa /prodotti/nuovo-slug
-  name: "Nome",
-  tagline: "Frase breve.",
-  description: "Descrizione lunga…",
-  categoryId: "cervicale",       // deve esistere in CATEGORIES
-  isNew: true,                   // opzionale
-  options: [federaOption("bamboo", "aloe")], // oppure altezzaOption(...) o [] se unica
-  variants: [
-    variant("B0XXXXXX01", { colore: "bamboo" }, 3189, { stock: 40 }),
-    variant("B0XXXXXX02", { colore: "aloe" }, 3189, { stock: 40 }),
-  ],
-  images: [
-    img("new-1", "Descrizione immagine", ["#F2ECE1", "#D8CEBD"]), // tono placeholder
-  ],
-  features: ["Caratteristica 1", "Caratteristica 2"],
-  specs: [{ label: "Materiale", value: "Memory foam" }],
-  materials: ["Memory foam"],
-  reviews: [],                   // può restare vuoto
-  createdAt: "2026-07-26",       // guida "Novità" e ordinamento per data
-},
-```
-Lo `sku` di ogni `variant` è l'**ASIN** del prodotto/variante su Amazon.
-
-### Opzioni disponibili (altezza / federa)
-Gli helper in cima al file definiscono i valori ammessi:
-- `altezzaOption("8", "10", "12", "13", "15", "18")`  → asse **Altezza**
-- `federaOption("bamboo", "aloe", "silver", "cotone")` → asse **Federa** (con swatch)
-
-Per aggiungere un nuovo valore (es. una nuova altezza o federa), aggiungilo alle
-mappe `ALTEZZE` / `FEDERE` in cima a `data.ts`.
+Copia un blocco `prod({...})` esistente e cambia i campi. **Regole:** `id`,
+`slug` e `sku` (ASIN) devono essere **univoci**; `categoryId` deve esistere in
+`CATEGORIES`. Toni immagine disponibili: `T.warm`, `T.warm2`, `T.sand`,
+`T.sage`, `T.silver`.
 
 ### Categorie
 Sono nell'array `CATEGORIES` (sempre in `data.ts`):
