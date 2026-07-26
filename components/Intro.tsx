@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { hasIntroPlayed, markIntroPlayed } from "@/lib/introState";
 
 /**
  * Opening sequence: the brand logo appears centered, holds, then zooms
@@ -33,6 +34,7 @@ export default function Intro({ onComplete }: { onComplete: () => void }) {
     const finish = () => {
       if (finished) return;
       finished = true;
+      markIntroPlayed();
       clearTimeout(failsafe);
       unlock();
       // The Hero pin may have been measured while the page was locked (collapsed
@@ -42,7 +44,9 @@ export default function Intro({ onComplete }: { onComplete: () => void }) {
       setDone(true);
     };
 
-    if (reduce || !root || !logo) {
+    // Already seen this session (or reduced motion, or missing nodes): skip the
+    // whole logo + film sequence and hand off immediately — no replay.
+    if (reduce || hasIntroPlayed() || !root || !logo) {
       finish();
       return;
     }

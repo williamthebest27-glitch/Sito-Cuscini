@@ -151,7 +151,10 @@ export default function Guarantees() {
       }
 
       let rt: ReturnType<typeof setTimeout>;
+      let lastW = window.innerWidth;
       const onResize = () => {
+        if (window.innerWidth === lastW) return; // ignore mobile chrome height shifts
+        lastW = window.innerWidth;
         clearTimeout(rt);
         rt = setTimeout(() => {
           split?.revert();
