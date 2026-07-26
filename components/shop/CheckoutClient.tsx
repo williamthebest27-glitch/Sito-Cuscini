@@ -45,9 +45,20 @@ export default function CheckoutClient() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("carta");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [placed, setPlaced] = useState<{ orderId: string; email: string } | null>(
-    null,
+  // Una chiave per tentativo di checkout: un retry non duplica ordine/evasione.
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
+  const [placed, setPlaced] = useState<{
+    orderId: string;
+    email: string;
+    paymentStatus?: string;
+    paymentMessage?: string;
+    fulfillment?: { provider: string; status: string };
+    warning?: string;
+  } | null>(null);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -78,11 +89,21 @@ export default function CheckoutClient() {
       paymentMethod,
       discountCode: discount?.code,
       notes: form.notes || undefined,
+      idempotencyKey,
     };
     try {
       const res = await placeOrder(input);
       if (res.ok && res.orderId) {
-        setPlaced({ orderId: res.orderId, email: form.email });
+        setPlaced({
+          orderId: res.orderId,
+          email: form.email,
+          paymentStatus: res.payment?.status,
+          paymentMessage: res.payment?.message,
+          fulfillment: res.fulfillment
+            ? { provider: res.fulfillment.provider, status: res.fulfillment.status }
+            : undefined,
+          warning: res.warning,
+        });
         clear();
       } else {
         setError(res.error ?? "Si è verificato un errore. Riprova.");
@@ -96,17 +117,36 @@ export default function CheckoutClient() {
 
   // --- Conferma ordine ---
   if (placed) {
+    const awaitingPayment = placed.paymentStatus === "pending";
     return (
       <div className="confirm">
         <div className="confirm__check" aria-hidden="true">
           <IconCheck />
         </div>
-        <h1 className="confirm__title">Ordine confermato</h1>
+        <h1 className="confirm__title">
+          {awaitingPayment ? "Ordine ricevuto" : "Ordine confermato"}
+        </h1>
         <p className="prose" style={{ margin: "0 auto" }}>
           Grazie! Abbiamo ricevuto il tuo ordine. Una conferma è in arrivo a{" "}
           <strong>{placed.email}</strong>.
         </p>
         <div className="confirm__id">Ordine {placed.orderId}</div>
+        {placed.paymentMessage ? (
+          <p className="prose" style={{ margin: "0 auto 0.6rem", fontSize: "0.9rem" }}>
+            {placed.paymentMessage}
+          </p>
+        ) : null}
+        {placed.fulfillment ? (
+          <p className="prose" style={{ margin: "0 auto 0.6rem", fontSize: "0.9rem" }}>
+            Evasione affidata ad <strong>Amazon</strong> (stato:{" "}
+            {placed.fulfillment.status}).
+          </p>
+        ) : null}
+        {placed.warning ? (
+          <p className="prose" style={{ margin: "0 auto 0.6rem", fontSize: "0.9rem", color: "#b1483a" }}>
+            {placed.warning}
+          </p>
+        ) : null}
         <div>
           <Link href="/negozio" className="btn btn--primary">
             Continua lo shopping

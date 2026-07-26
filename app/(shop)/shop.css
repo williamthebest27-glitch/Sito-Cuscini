@@ -1012,6 +1012,11 @@
   color: var(--ink-soft);
   max-width: 62ch;
 }
+/* Preserva gli a-capo della descrizione (bullet Amazon, uno per riga) */
+.prose--lines {
+  white-space: pre-line;
+  max-width: 74ch;
+}
 .feature-list {
   display: grid;
   gap: 0.7rem;

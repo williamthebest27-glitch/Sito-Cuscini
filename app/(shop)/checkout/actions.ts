@@ -1,18 +1,26 @@
 "use server";
 
 /**
- * Server Action di invio ordine — STUB (nessuna API attiva).
+ * Server Action di invio ordine.
  *
- * È la cucitura server verso le integrazioni: oggi valida i dati e restituisce
- * un id d'ordine simulato; domani, qui dentro, si collegheranno magazzino,
- * gestionale, fulfillment (Amazon MCF) e corriere — senza cambiare la UI.
+ * Flusso: valida → ricostruisce l'ordine da fonte affidabile → **incassa il
+ * pagamento** → **solo a pagamento confermato** crea l'ordine di evasione
+ * Amazon MCF (se configurato). Se non c'è un gateway reale, il pagamento passa
+ * dal ManualPaymentProvider (conferma simulata) così il flusso è completo con
+ * le sole credenziali SP-API. Se MCF fallisce dopo un pagamento riuscito,
+ * l'ordine resta valido (warning non bloccante) e l'evasione va ritentata.
  */
 import { getRepository } from "@/lib/shop/repository";
 import { computeTotals } from "@/lib/shop/cart/pricing";
 import { validateDiscountCode } from "@/lib/shop/discounts";
 import { toCartLine } from "@/lib/shop/cart/line";
-// Predisposizione integrazioni (attualmente non configurate):
-// import { getFulfillmentProvider, getInventoryProvider } from "@/lib/integrations";
+import type { CartLine } from "@/lib/shop/cart/types";
+import {
+  getFulfillmentProvider,
+  getPaymentProvider,
+  type FulfillmentStatus,
+  type PaymentStatus,
+} from "@/lib/integrations";
 
 export interface CheckoutAddress {
   fullName: string;
@@ -33,6 +41,11 @@ export interface PlaceOrderInput {
   paymentMethod: string;
   discountCode?: string;
   notes?: string;
+  /**
+   * Chiave di idempotenza generata dal client (una per tentativo di checkout):
+   * garantisce che un retry non crei un secondo ordine/evasione MCF.
+   */
+  idempotencyKey?: string;
 }
 
 export interface PlaceOrderResult {
@@ -40,14 +53,64 @@ export interface PlaceOrderResult {
   orderId?: string;
   total?: number;
   error?: string;
+  /** Esito del pagamento. */
+  payment?: {
+    status: PaymentStatus;
+    /** true se conferma simulata (nessun addebito reale). */
+    simulated: boolean;
+    message?: string;
+  };
+  /** Presente se l'ordine è stato inoltrato a un provider di evasione (es. MCF). */
+  fulfillment?: {
+    provider: string;
+    providerOrderId: string;
+    status: FulfillmentStatus;
+  };
+  /** Avviso non bloccante (es. MCF fallito dopo pagamento riuscito). */
+  warning?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function orderId(): string {
+/**
+ * Id ordine stabile: derivato dalla chiave di idempotenza (se presente), così
+ * i retry riusano lo stesso id e MCF resta idempotente sul sellerFulfillmentOrderId.
+ */
+function makeOrderId(key?: string): string {
+  if (key) {
+    const clean = key.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    if (clean.length >= 6) return `TDT-${clean.slice(0, 12)}`;
+  }
   const rnd = Math.random().toString(36).slice(2, 8).toUpperCase();
   const stamp = Date.now().toString(36).slice(-4).toUpperCase();
   return `TDT-${stamp}${rnd}`;
+}
+
+/** Crea l'ordine di evasione MCF per un ordine già pagato. Idempotente sull'orderId. */
+async function fulfillWithMcf(
+  orderId: string,
+  cartLines: CartLine[],
+  address: CheckoutAddress,
+  email: string,
+  shippingMethod: "standard" | "express",
+): Promise<PlaceOrderResult["fulfillment"] | { error: string }> {
+  const fulfiller = getFulfillmentProvider();
+  if (!fulfiller?.isConfigured()) return undefined;
+  try {
+    const res = await fulfiller.createFulfillment({
+      orderId,
+      lines: cartLines.map((l) => ({ sku: l.sku, quantity: l.quantity })),
+      shippingAddress: { ...address, email },
+      speed: shippingMethod === "express" ? "expedited" : "standard",
+    });
+    return {
+      provider: res.provider,
+      providerOrderId: res.providerOrderId,
+      status: res.status,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "errore sconosciuto" };
+  }
 }
 
 export async function placeOrder(
@@ -95,12 +158,51 @@ export async function placeOrder(
   const expressSurcharge = input.shippingMethod === "express" ? 500 : 0;
   const total = totals.total + expressSurcharge;
 
-  // --- Punto d'aggancio integrazioni (oggi inattivo) ---
-  // const inventory = getInventoryProvider();
-  // if (inventory?.isConfigured()) await inventory.reserve(input.lines);
-  // const fulfiller = getFulfillmentProvider();
-  // if (fulfiller?.isConfigured()) await fulfiller.createFulfillment({ ... });
+  const id = makeOrderId(input.idempotencyKey);
 
-  // Nessun pagamento reale viene elaborato in questa fase.
-  return { ok: true, orderId: orderId(), total };
+  // --- 1) Pagamento (gateway reale se configurato, altrimenti manuale) ---
+  const payment = await getPaymentProvider().createPayment({
+    orderId: id,
+    amount: total,
+    currency: "EUR",
+    method: input.paymentMethod,
+    email: input.email,
+  });
+
+  if (payment.status === "failed") {
+    return {
+      ok: false,
+      error: payment.message ?? "Pagamento non riuscito. Riprova.",
+      payment: { status: payment.status, simulated: payment.simulated, message: payment.message },
+    };
+  }
+
+  const result: PlaceOrderResult = {
+    ok: true,
+    orderId: id,
+    total,
+    payment: { status: payment.status, simulated: payment.simulated, message: payment.message },
+  };
+
+  // --- 2) Evasione MCF: SOLO a pagamento confermato ("paid") ---
+  if (payment.status === "paid") {
+    const outcome = await fulfillWithMcf(
+      id,
+      cartLines,
+      input.address,
+      input.email,
+      input.shippingMethod,
+    );
+    if (outcome && "error" in outcome) {
+      // Il pagamento è andato a buon fine: non si perde l'ordine. L'evasione
+      // andrà ritentata (retry con la stessa idempotencyKey = stesso ordine MCF).
+      result.warning = `Evasione Amazon in sospeso: ${outcome.error}`;
+    } else if (outcome) {
+      result.fulfillment = outcome;
+    }
+  }
+  // Se status === "pending" (es. bonifico) l'evasione NON parte finché il
+  // pagamento non è confermato.
+
+  return result;
 }
