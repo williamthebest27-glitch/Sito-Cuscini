@@ -1,13 +1,10 @@
 # Gestione prodotti e prezzi (senza pannello admin)
 
 Guida pratica per modificare prezzi, offerte, giacenze e prodotti **direttamente nel
-codice**. Ci sono due negozi indipendenti:
+codice**. Il negozio è **`/negozio`**, con catalogo in
+[`lib/shop/data.ts`](lib/shop/data.ts).
 
-- **`/negozio`** → catalogo in [`lib/shop/data.ts`](lib/shop/data.ts) (lo shop completo)
-- **`/collezione`** → WooCommerce; finché non colleghi uno store reale, mostra i demo
-  in [`lib/woocommerce.ts`](lib/woocommerce.ts)
-
-> **Importante sui prezzi di `/negozio`:** sono in **centesimi di euro**.
+> **Importante sui prezzi:** sono in **centesimi di euro**.
 > `8900` = 89,00 € · `12990` = 129,90 € · `990` = 9,90 €.
 
 ---
@@ -121,23 +118,7 @@ Con `src` presente, il componente passa automaticamente a foto ottimizzate.
 
 ---
 
-## 3) `/collezione` — prodotti demo WooCommerce
-
-Finché non colleghi un vero WooCommerce, i prodotti sono i **demo** in
-[`lib/woocommerce.ts`](lib/woocommerce.ts), array `DEMO_PRODUCTS`. Qui i prezzi sono
-**stringhe già formattate**:
-```ts
-{ id: "duo", name: "Set Duo", slug: "set-duo", price: "€ 239",
-  regularPrice: "€ 258", onSale: true, permalink: "#",
-  shortDescription: "Due cuscini Classico…" },
-```
-Per collegare un WooCommerce reale: imposta la variabile d'ambiente
-`WC_STORE_URL=https://tuo-store.com` in `.env.local`. Da quel momento `/collezione`
-legge i prodotti dallo store e li gestisci dal **wp-admin** di WordPress.
-
----
-
-## 4) Come vedere e pubblicare le modifiche
+## 3) Come vedere e pubblicare le modifiche
 
 **In locale (anteprima immediata):**
 ```bash

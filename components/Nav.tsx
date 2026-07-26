@@ -8,10 +8,10 @@ import { useIntroDone } from "./introContext";
 const MotionLink = motion.create(Link);
 
 const LINKS = [
-  { label: "Collezione", href: "/collezione" },
-  { label: "Perché", href: "/#perche" },
+  { label: "Home", href: "/" },
   { label: "Materiali", href: "/#materiali" },
   { label: "Negozio", href: "/negozio" },
+  { label: "Contatti", href: "/#contatti" },
 ];
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -99,7 +99,7 @@ export default function Nav({ revealed }: { revealed?: boolean }) {
           ))}
         </nav>
 
-        <MotionLink variants={item} href="/collezione" className="nav__cta">
+        <MotionLink variants={item} href="/negozio" className="nav__cta">
           Acquista
         </MotionLink>
 
@@ -165,7 +165,7 @@ export default function Nav({ revealed }: { revealed?: boolean }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease, delay: 0.12 + LINKS.length * 0.08 }}
             >
-              <Link href="/collezione" className="menu__cta" onClick={() => setOpen(false)}>
+              <Link href="/negozio" className="menu__cta" onClick={() => setOpen(false)}>
                 Acquista
                 <span aria-hidden="true">→</span>
               </Link>

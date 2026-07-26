@@ -60,7 +60,7 @@ export default function CollectionTeaser() {
         viewport={{ once: true, margin: "-10%" }}
         transition={{ duration: 0.9, ease, delay: 0.15 }}
       >
-        <Link href="/collezione" className="teaser__cta-link">
+        <Link href="/negozio" className="teaser__cta-link">
           Vedi tutta la collezione
           <span aria-hidden="true">→</span>
         </Link>
