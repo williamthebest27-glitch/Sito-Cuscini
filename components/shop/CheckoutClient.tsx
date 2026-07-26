@@ -45,9 +45,11 @@ export default function CheckoutClient() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("carta");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [placed, setPlaced] = useState<{ orderId: string; email: string } | null>(
-    null,
-  );
+  const [placed, setPlaced] = useState<{
+    orderId: string;
+    email: string;
+    fulfillment?: { provider: string; status: string };
+  } | null>(null);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -82,7 +84,13 @@ export default function CheckoutClient() {
     try {
       const res = await placeOrder(input);
       if (res.ok && res.orderId) {
-        setPlaced({ orderId: res.orderId, email: form.email });
+        setPlaced({
+          orderId: res.orderId,
+          email: form.email,
+          fulfillment: res.fulfillment
+            ? { provider: res.fulfillment.provider, status: res.fulfillment.status }
+            : undefined,
+        });
         clear();
       } else {
         setError(res.error ?? "Si è verificato un errore. Riprova.");
@@ -107,6 +115,12 @@ export default function CheckoutClient() {
           <strong>{placed.email}</strong>.
         </p>
         <div className="confirm__id">Ordine {placed.orderId}</div>
+        {placed.fulfillment ? (
+          <p className="prose" style={{ margin: "0 auto 0.6rem", fontSize: "0.9rem" }}>
+            Evasione affidata ad <strong>Amazon</strong> (stato:{" "}
+            {placed.fulfillment.status}).
+          </p>
+        ) : null}
         <div>
           <Link href="/negozio" className="btn btn--primary">
             Continua lo shopping
