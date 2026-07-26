@@ -11,6 +11,7 @@ const LINKS = [
   { label: "Collezione", href: "/collezione" },
   { label: "Perché", href: "/#perche" },
   { label: "Materiali", href: "/#materiali" },
+  { label: "Negozio", href: "/negozio" },
 ];
 
 const ease = [0.16, 1, 0.3, 1] as const;
