@@ -201,7 +201,7 @@ export default function ShopBrowser({
 
         {facets.rigidita.length > 0 ? (
           <fieldset className="filters__group">
-            <legend className="filters__legend">Rigidità</legend>
+            <legend className="filters__legend">Formato</legend>
             <div className="filters__options">
               {facets.rigidita.map((f) => (
                 <button
@@ -220,7 +220,7 @@ export default function ShopBrowser({
 
         {facets.colore.length > 0 ? (
           <fieldset className="filters__group">
-            <legend className="filters__legend">Federa</legend>
+            <legend className="filters__legend">Colore</legend>
             <div className="filters__options">
               {facets.colore.map((f) => (
                 <button
@@ -244,7 +244,7 @@ export default function ShopBrowser({
 
         {facets.misura.length > 0 ? (
           <fieldset className="filters__group">
-            <legend className="filters__legend">Altezza</legend>
+            <legend className="filters__legend">Misura</legend>
             <div className="filters__options">
               {facets.misura.map((f) => (
                 <button

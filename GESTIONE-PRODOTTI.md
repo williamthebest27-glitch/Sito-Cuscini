@@ -14,70 +14,77 @@ codice**. Ci sono due negozi indipendenti:
 
 ## 1) `/negozio` — modifiche in `lib/shop/data.ts`
 
-> **1 prodotto = 1 ASIN.** Ogni prodotto rispecchia 1:1 un'inserzione Amazon
-> (titolo, descrizione e prezzo identici) e lo **SKU è l'ASIN** (es. `B0FR6HG72B`),
-> così MCF evade con lo stesso identificatore. Se il tuo Seller SKU differisce
-> dall'ASIN, mappalo in `AMAZON_MCF_SKU_MAP` (vedi `.env.example`).
+> **SKU = ASIN.** Ogni prodotto rispecchia un'inserzione Amazon con le sue
+> **varianti** (colori/misure): ogni combinazione ha il suo **ASIN come SKU**,
+> così MCF evade con l'identificatore giusto. Se il tuo Seller SKU differisce,
+> mappalo in `AMAZON_MCF_SKU_MAP` (vedi `.env.example`).
 
-Ogni prodotto è un blocco `prod({ ... })`. I campi principali:
+Ogni prodotto è un blocco `mk({ ... })`. Il prezzo, l'offerta e la giacenza sono
+**per variante**, dentro le `variant(...)`:
 
 ```ts
-prod({
-  id: "onda-bamboo",                 // id interno univoco
-  slug: "cervicale-doppia-onda-bamboo", // → /prodotti/<slug>
-  sku: "B0FR6HG72B",                 // = ASIN Amazon
-  name: "The Double Twenty - Cuscino Cervicale ...", // titolo Amazon esatto
+mk({
+  id: "doppia-onda",
+  slug: "cervicale-doppia-onda",     // → /prodotti/<slug>
+  name: "The Double Twenty - Cuscino Cervicale ...", // titolo Amazon
   tagline: "Frase breve per la card.",
   categoryId: "cervicale",           // deve esistere in CATEGORIES
-  price: 3189,                        // in centesimi → 31,89 €
-  bullets: [                          // = descrizione (bullet Amazon), uno per riga
-    "SUPPORTO: ...",
-    "2 ALTEZZE: ...",
+  options: [coloreOption("Federa", "bamboo", "aloe")], // gli assi variante
+  variants: [
+    variant("B0FR6HG72B", { colore: "bamboo" }, 3189), // SKU=ASIN, opzione, prezzo(cent)
+    variant("B0GWN465B1", { colore: "aloe" }, 3189),
   ],
+  bullets: [ "SUPPORTO: ...", "2 ALTEZZE: ..." ], // = descrizione, una riga per punto
   specs: [{ label: "Dimensione", value: "40 × 70 cm" }],
   materials: ["Memory foam", "Bamboo"],
-  tone: T.sand,                       // colore del placeholder immagine
+  tone: T.sand,                       // colore placeholder immagine
   createdAt: "2025-03-01",
   featured: true,                     // opzionale
 }),
 ```
+Assi variante disponibili:
+- `coloreOption("Etichetta", "bamboo", "aloe", ...)` → swatch colore/federa (valori in `COLORS`)
+- `sizeOption("Altezza", [{ id: "15", label: "15 cm" }, ...])` → misure/altezze
+- `formatoOption({ id: "gravidanza", label: "Gravidanza" }, ...)` → un secondo asse (es. formato)
+
+Prodotto a variante unica: `options: []` e `variants: [variant("ASIN", {}, prezzo)]`.
 
 ### Cambiare un prezzo
-Modifica `price` (in centesimi). Es. a 27,90 €:
+Modifica il numero prezzo nella `variant(...)` (in centesimi). Es. a 27,90 €:
 ```ts
-price: 2790,
+variant("B0FR6HG72B", { colore: "bamboo" }, 2790),
 ```
 
 ### Mettere in offerta (badge −%)
-Aggiungi `compareAt` al blocco `prod({...})` (prezzo pieno barrato, maggiore di
-`price`); lo sconto % e il badge si calcolano da soli. Nota: `compareAt` va
-passato alla variante — apri `data.ts`, nella funzione `prod` la variante è
-`{ sku, options: {}, price, stock }`: aggiungi `compareAtPrice`:
+Aggiungi un 4° argomento `{ compareAt }` alla variante (prezzo pieno barrato,
+maggiore del prezzo). Lo sconto % e il badge si calcolano da soli:
 ```ts
-variants: [{ sku: p.sku, options: {}, price: p.price, compareAtPrice: 3189, stock: 100 }],
+variant("B0FR6HG72B", { colore: "bamboo" }, 2790, { compareAt: 3189 }),
 ```
-(Oppure aggiungi un campo `compareAt` a `ProdInput` e passalo lì.)
 
 ### Segnare "esaurito"
-Nella variante dentro `prod`, metti `stock: 0`. Sotto le 5 unità compare
-"Ultimi N pezzi"; a 0 diventa "Esaurito" e il pulsante si disabilita.
-
-### Badge "Novità" / "In evidenza"
-Sono proprietà del blocco `prod({...})`:
+Nella variante aggiungi `{ stock: 0 }`. Sotto le 5 unità compare "Ultimi N pezzi";
+a 0 diventa "Esaurito" e il pulsante si disabilita.
 ```ts
-isNew: true,     // badge "Novità" + spinta nell'ordinamento "Novità"
-featured: true,  // spinta nell'ordinamento "Rilevanza"
+variant("B0FR6HG72B", { colore: "bamboo" }, 3189, { stock: 0 }),
 ```
 
+### Badge "Novità" / "In evidenza"
+Proprietà del blocco `mk({...})`: `isNew: true` (badge Novità), `featured: true`
+(spinta in "Rilevanza").
+
 ### Cambiare titolo, descrizione, ecc.
-Nel blocco `prod`: `name` (titolo), `tagline` (frase breve card), `bullets`
-(descrizione, un punto per riga), `specs` (tabella), `materials` (chip).
+Nel blocco `mk`: `name` (titolo), `tagline`, `bullets` (descrizione), `specs`,
+`materials`.
+
+### Aggiungere un valore colore
+Aggiungilo alla mappa `COLORS` in cima a `data.ts` (`id: { label, hex, tone }`),
+poi usalo in `coloreOption(...)` e nelle `variant(..., { colore: "id" }, ...)`.
 
 ### Aggiungere un nuovo prodotto
-Copia un blocco `prod({...})` esistente e cambia i campi. **Regole:** `id`,
-`slug` e `sku` (ASIN) devono essere **univoci**; `categoryId` deve esistere in
-`CATEGORIES`. Toni immagine disponibili: `T.warm`, `T.warm2`, `T.sand`,
-`T.sage`, `T.silver`.
+Copia un blocco `mk({...})` e cambia i campi. **Regole:** `id`, `slug` e ogni
+`sku` (ASIN) univoci; `categoryId` deve esistere in `CATEGORIES`. Toni immagine:
+`T.warm`, `T.warm2`, `T.sand`, `T.sage`, `T.silver`.
 
 ### Categorie
 Sono nell'array `CATEGORIES` (sempre in `data.ts`):
