@@ -12,10 +12,13 @@
 import { AmazonMcfProvider } from "./amazon-mcf";
 import { CourierProvider } from "./couriers";
 import { ErpProvider } from "./erp";
+import { ManualPaymentProvider } from "./payment/manual";
+import { StripePaymentProvider } from "./payment/stripe";
 import { WebBeeProvider } from "./webbee";
 import type {
   FulfillmentProvider,
   InventoryProvider,
+  PaymentProvider,
   ShippingProvider,
 } from "./types";
 
@@ -33,6 +36,12 @@ const inventoryProviders: InventoryProvider[] = [
 /** Provider di spedizione. */
 const shippingProviders: ShippingProvider[] = [new CourierProvider()];
 
+/** Gateway di pagamento reali, in ordine di preferenza. */
+const paymentProviders: PaymentProvider[] = [new StripePaymentProvider()];
+
+/** Fallback usato quando nessun gateway reale è configurato. */
+const manualPayment = new ManualPaymentProvider();
+
 /** Primo provider di fulfillment configurato (o undefined). */
 export function getFulfillmentProvider(): FulfillmentProvider | undefined {
   return fulfillmentProviders.find((p) => p.isConfigured());
@@ -46,6 +55,14 @@ export function getInventoryProvider(): InventoryProvider | undefined {
 /** Primo provider di spedizione configurato (o undefined). */
 export function getShippingProvider(): ShippingProvider | undefined {
   return shippingProviders.find((p) => p.isConfigured());
+}
+
+/**
+ * Provider di pagamento attivo. Ritorna il primo gateway reale configurato,
+ * altrimenti il fallback manuale (sempre presente). Non è mai undefined.
+ */
+export function getPaymentProvider(): PaymentProvider {
+  return paymentProviders.find((p) => p.isConfigured()) ?? manualPayment;
 }
 
 /** Stato sintetico delle integrazioni (utile per una dashboard admin futura). */
@@ -63,5 +80,12 @@ export function integrationsStatus() {
       name: p.name,
       configured: p.isConfigured(),
     })),
+    payment: {
+      active: getPaymentProvider().name,
+      gateways: paymentProviders.map((p) => ({
+        name: p.name,
+        configured: p.isConfigured(),
+      })),
+    },
   };
 }

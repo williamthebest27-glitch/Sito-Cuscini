@@ -101,6 +101,44 @@ export interface ShippingProvider {
   track(trackingNumber: string): Promise<FulfillmentResult>;
 }
 
+/* ------------------------------------------------------------------ *
+ * Pagamento
+ * ------------------------------------------------------------------ */
+
+export type PaymentStatus = "paid" | "pending" | "failed";
+
+export interface PaymentRequest {
+  orderId: string;
+  /** Importo totale in centesimi. */
+  amount: number;
+  currency: "EUR";
+  /** Metodo scelto dal cliente (carta/paypal/bonifico/…). */
+  method: string;
+  email: string;
+}
+
+export interface PaymentResult {
+  provider: string;
+  status: PaymentStatus;
+  /** Id transazione del provider (o riferimento interno). */
+  paymentId: string;
+  /** true se è una conferma simulata (nessun addebito reale). */
+  simulated: boolean;
+  /** Messaggio per l'utente (istruzioni o motivo del fallimento). */
+  message?: string;
+}
+
+/**
+ * Provider di pagamento. L'evasione (MCF) parte solo quando `createPayment`
+ * ritorna status "paid". Con nessun gateway reale configurato si usa il
+ * ManualPaymentProvider, che conferma i pagamenti in modo simulato.
+ */
+export interface PaymentProvider {
+  readonly name: string;
+  isConfigured(): boolean;
+  createPayment(req: PaymentRequest): Promise<PaymentResult>;
+}
+
 /** Errore sollevato dagli adapter non ancora configurati. */
 export class IntegrationNotConfiguredError extends Error {
   constructor(provider: string) {

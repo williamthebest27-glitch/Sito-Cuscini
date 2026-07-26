@@ -21,9 +21,16 @@ integrations/
 ## Amazon MCF — attivazione
 
 MCF è l'evasione ordini: Amazon preleva, imballa e spedisce ai tuoi clienti. È già
-**implementato** e agganciato al checkout (`app/(shop)/checkout/actions.ts`): quando
-un ordine viene inviato e MCF è configurato, viene creato un `fulfillmentOrder`
-SP-API.
+**implementato** e agganciato al checkout (`app/(shop)/checkout/actions.ts`).
+
+**Flusso ordine:** valida → **incassa il pagamento** → *solo a pagamento
+confermato* (`status: "paid"`) crea il `fulfillmentOrder` SP-API. Con le sole
+credenziali MCF, il pagamento passa dal **ManualPaymentProvider** (conferma
+simulata, nessun addebito), quindi MCF parte comunque: basta SP-API. Aggiungendo
+un gateway reale (es. Stripe via `STRIPE_SECRET_KEY`), MCF scatta alla sua
+conferma, senza altre modifiche. Se MCF fallisce dopo un pagamento riuscito,
+l'ordine non si perde (warning non bloccante) e va ritentato con la stessa
+`idempotencyKey`.
 
 **Prerequisiti (lato Amazon):**
 1. Account **Amazon Seller** con **FBA/MCF** attivo e prodotti già a magazzino
