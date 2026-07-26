@@ -14,27 +14,34 @@ codice**. Ci sono due negozi indipendenti:
 
 ## 1) `/negozio` — modifiche in `lib/shop/data.ts`
 
+> **SKU = ASIN Amazon.** Ogni variante usa l'ASIN come SKU (es. `B0FR6HG72B`),
+> così MCF evade con lo stesso identificatore. Se il tuo Seller SKU differisce
+> dall'ASIN, mappalo in `AMAZON_MCF_SKU_MAP` (vedi `.env.example`).
+
 Ogni prodotto ha una o più **varianti** (SKU). Il prezzo, l'offerta e la giacenza
 sono **per variante**, dentro la funzione `variant(...)`:
 
 ```ts
-variant("AUR-MED", { rigidita: "medio" }, 8900, { compareAt: 10900, stock: 22 }),
-//        SKU        opzione scelta        prezzo   prezzo pieno       giacenza
-//                                         (89,00€) (109,00€ barrato)
+variant("B0FR6HG72B", { colore: "bamboo" }, 3189, { stock: 120 }),
+//        SKU=ASIN      federa scelta         prezzo   giacenza
+//                                            (31,89€)
 ```
+Gli assi possibili sono `{ misura: "..." }` (etichetta **Altezza**, es. "10","13","15")
+e `{ colore: "..." }` (etichetta **Federa**, es. "bamboo","aloe","silver","cotone").
+I prodotti a variante unica usano `options: []` e `variant("ASIN", {}, prezzo, {...})`.
 
 ### Cambiare un prezzo
-Modifica il numero del prezzo (in centesimi). Es. Aurora Medio a 79,90 €:
+Modifica il numero del prezzo (in centesimi). Es. a 27,90 €:
 ```ts
-variant("AUR-MED", { rigidita: "medio" }, 7990, { compareAt: 10900, stock: 22 }),
+variant("B0FR6HG72B", { colore: "bamboo" }, 2790, { stock: 120 }),
 ```
 
 ### Mettere in offerta (badge −%)
 Aggiungi `compareAt` (prezzo pieno barrato) **maggiore** del prezzo. Lo sconto %
 e il badge si calcolano da soli:
 ```ts
-variant("NUV-MOR", { rigidita: "morbido" }, 5900, { compareAt: 6900, stock: 26 }),
-// mostra 59,00 € con 69,00 € barrato e badge −14%
+variant("B0FR6HG72B", { colore: "bamboo" }, 2790, { compareAt: 3189, stock: 120 }),
+// mostra 27,90 € con 31,89 € barrato e badge −13%
 ```
 Per **togliere** l'offerta: rimuovi `compareAt`.
 
@@ -42,7 +49,7 @@ Per **togliere** l'offerta: rimuovi `compareAt`.
 Metti `stock: 0`. Sotto le 5 unità compare "Ultimi N pezzi"; a 0 diventa "Esaurito"
 e il pulsante si disabilita.
 ```ts
-variant("RIV-6080", { misura: "60x80" }, 11200, { stock: 0 }),
+variant("B0H26LC3FH", { colore: "cotone" }, 2657, { stock: 0 }),
 ```
 
 ### Badge "Novità" / "In evidenza"
@@ -74,10 +81,10 @@ Struttura minima:
   description: "Descrizione lunga…",
   categoryId: "cervicale",       // deve esistere in CATEGORIES
   isNew: true,                   // opzionale
-  options: [rigiditaOption("medio", "rigido")], // oppure misuraOption / coloreOption
+  options: [federaOption("bamboo", "aloe")], // oppure altezzaOption(...) o [] se unica
   variants: [
-    variant("NEW-MED", { rigidita: "medio" }, 8900, { stock: 15 }),
-    variant("NEW-RIG", { rigidita: "rigido" }, 8900, { stock: 10 }),
+    variant("B0XXXXXX01", { colore: "bamboo" }, 3189, { stock: 40 }),
+    variant("B0XXXXXX02", { colore: "aloe" }, 3189, { stock: 40 }),
   ],
   images: [
     img("new-1", "Descrizione immagine", ["#F2ECE1", "#D8CEBD"]), // tono placeholder
@@ -89,15 +96,15 @@ Struttura minima:
   createdAt: "2026-07-26",       // guida "Novità" e ordinamento per data
 },
 ```
+Lo `sku` di ogni `variant` è l'**ASIN** del prodotto/variante su Amazon.
 
-### Opzioni disponibili (misura / rigidità / colore)
+### Opzioni disponibili (altezza / federa)
 Gli helper in cima al file definiscono i valori ammessi:
-- `misuraOption("40x60", "50x70", "60x80", "compatto", "unica")`
-- `rigiditaOption("morbido", "medio", "rigido")`
-- `coloreOption("naturale", "sabbia", "argilla", "grafite", "salvia")`
+- `altezzaOption("8", "10", "12", "13", "15", "18")`  → asse **Altezza**
+- `federaOption("bamboo", "aloe", "silver", "cotone")` → asse **Federa** (con swatch)
 
-Per aggiungere un nuovo valore (es. una nuova misura), aggiungilo alle mappe
-`MISURE` / `RIGIDITA` / `COLORS` in cima a `data.ts`.
+Per aggiungere un nuovo valore (es. una nuova altezza o federa), aggiungilo alle
+mappe `ALTEZZE` / `FEDERE` in cima a `data.ts`.
 
 ### Categorie
 Sono nell'array `CATEGORIES` (sempre in `data.ts`):

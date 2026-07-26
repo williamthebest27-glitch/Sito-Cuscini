@@ -199,61 +199,67 @@ export default function ShopBrowser({
           </div>
         </fieldset>
 
-        <fieldset className="filters__group">
-          <legend className="filters__legend">Rigidità</legend>
-          <div className="filters__options">
-            {facets.rigidita.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="chip"
-                data-active={rigidita.includes(f.id)}
-                onClick={() => setRigidita((c) => toggle(c, f.id))}
-              >
-                {f.label} <span className="chip__count">{f.count}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        {facets.rigidita.length > 0 ? (
+          <fieldset className="filters__group">
+            <legend className="filters__legend">Rigidità</legend>
+            <div className="filters__options">
+              {facets.rigidita.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="chip"
+                  data-active={rigidita.includes(f.id)}
+                  onClick={() => setRigidita((c) => toggle(c, f.id))}
+                >
+                  {f.label} <span className="chip__count">{f.count}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
 
-        <fieldset className="filters__group">
-          <legend className="filters__legend">Colore</legend>
-          <div className="filters__options">
-            {facets.colore.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="chip"
-                data-active={colore.includes(f.id)}
-                onClick={() => setColore((c) => toggle(c, f.id))}
-              >
-                <span
-                  className="chip__swatch"
-                  style={{ background: f.hex }}
-                  aria-hidden="true"
-                />
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        {facets.colore.length > 0 ? (
+          <fieldset className="filters__group">
+            <legend className="filters__legend">Federa</legend>
+            <div className="filters__options">
+              {facets.colore.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="chip"
+                  data-active={colore.includes(f.id)}
+                  onClick={() => setColore((c) => toggle(c, f.id))}
+                >
+                  <span
+                    className="chip__swatch"
+                    style={{ background: f.hex }}
+                    aria-hidden="true"
+                  />
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
 
-        <fieldset className="filters__group">
-          <legend className="filters__legend">Misura</legend>
-          <div className="filters__options">
-            {facets.misura.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="chip"
-                data-active={misura.includes(f.id)}
-                onClick={() => setMisura((c) => toggle(c, f.id))}
-              >
-                {f.label} <span className="chip__count">{f.count}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        {facets.misura.length > 0 ? (
+          <fieldset className="filters__group">
+            <legend className="filters__legend">Altezza</legend>
+            <div className="filters__options">
+              {facets.misura.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="chip"
+                  data-active={misura.includes(f.id)}
+                  onClick={() => setMisura((c) => toggle(c, f.id))}
+                >
+                  {f.label} <span className="chip__count">{f.count}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
 
         <fieldset className="filters__group">
           <legend className="filters__legend">Offerte</legend>
