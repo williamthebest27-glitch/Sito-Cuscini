@@ -17,6 +17,9 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     if (reduce) return;
 
     gsap.registerPlugin(ScrollTrigger);
+    // Mobile browsers fire resize when the address bar shows/hides. Don't let
+    // that refresh (and jump) the pinned timelines mid-scroll.
+    ScrollTrigger.config({ ignoreMobileResize: true });
 
     const lenis = new Lenis({
       duration: 1.15,

@@ -80,6 +80,15 @@ export default function RootLayout({
   return (
     <html lang="it" className={`${display.variable} ${sans.variable}`}>
       <body>
+        {/* Runs before paint: if the intro already played this session, inject a
+            style that hides the overlay instantly (no flash on return). Injecting
+            a <style> — rather than mutating <html> — keeps hydration pristine. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(sessionStorage.getItem('dt:intro-played')==='1'&&!document.getElementById('dt-intro-skip')){var s=document.createElement('style');s.id='dt-intro-skip';s.textContent='.intro{display:none!important}';document.head.appendChild(s);}}catch(e){}",
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
