@@ -1,0 +1,971 @@
+<?php
+/**
+ * THE DOUBLE TWENTY — Pagina pagamento (cassa)
+ * ---------------------------------------------------------------------------
+ * Riveste la cassa classica di WooCommerce con la grafica del sito:
+ * intestazione con i tre passi (qui il secondo e' acceso), campi in schede,
+ * riepilogo dell-ordine agganciato mentre scorri, e il pulsante di conferma
+ * con le garanzie sotto.
+ *
+ * NON tocca i template e NON tocca il funzionamento: la cassa e' la pagina
+ * dove passano i soldi, percio' qui dentro non c'e' una sola riga che
+ * intercetti l-invio del modulo, i totali o i metodi di pagamento. Il codice
+ * aggiunge soltanto l-intestazione, qualche etichetta e le animazioni; tutto
+ * il resto e' vestito. Disattivando il frammento la cassa torna quella di
+ * prima, intera.
+ *
+ * LINGUE: i testi del frammento (titolo, passi, garanzie, ritorno al
+ * carrello) sono scritti qui dentro in italiano, inglese, francese, tedesco,
+ * spagnolo, olandese e polacco: vedi tdt_pagamento_traduzioni. Quello giusto
+ * si sceglie da solo, chiedendo la lingua della pagina al plugin di
+ * traduzione (WPML, Polylang, TranslatePress, Weglot) o, se non ce n-e'
+ * nessuno, a WordPress. Le scritte di WooCommerce (i campi, "Il tuo
+ * ordine", il pulsante di conferma) le traduce WooCommerce, come prima.
+ *
+ * Dove si incolla: Frammenti di codice (Code Snippets), frammento PHP,
+ * esecuzione "ovunque". Si carica da solo solo sulla pagina della cassa.
+ *
+ * >>> NON COPIARE LA PRIMA RIGA DEL FILE, quella con il tag di apertura
+ * >>> PHP: Code Snippets e WPCode eseguono il codice con eval(), che e'
+ * >>> gia' in modalita' PHP, e con il tag dentro danno "syntax error".
+ * >>> Nella stessa cartella c-e' il file gia' pronto senza tag:
+ * >>> tdt-pagamento-DA-INCOLLARE.txt
+ *
+ * Ogni funzione e' protetta da function_exists: anche se per sbaglio
+ * restano attive due copie del frammento, non puo' uscire un
+ * "Cannot redeclare ..." che spegnerebbe il sito.
+ *
+ * Le stringhe di CSS e JS stanno dentro dei nowdoc: li' dentro PHP non
+ * interpreta niente, percio' apostrofi, virgolette e $ si scrivono
+ * normalmente senza doverli proteggere.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * I testi, lingua per lingua: cambia qui, non nel codice qui sotto.
+ * Per aggiungere una lingua copia un blocco e cambia la sigla (due lettere
+ * minuscole, come "pt" o "sv"). Se a una lingua manca una frase, al suo
+ * posto esce quella italiana.
+ */
+if ( ! function_exists( 'tdt_pagamento_traduzioni' ) ) {
+function tdt_pagamento_traduzioni() {
+	return apply_filters(
+		'tdt_pagamento_traduzioni',
+		array(
+			'it' => array(
+				'occhiello' => 'Pagamento',
+				'titolo'    => 'Completa l’ordine',
+				'passi'     => array( 'Carrello', 'Pagamento', 'Conferma' ),
+				'indietro'  => 'Torna al carrello',
+				'sicuro'    => 'Connessione protetta',
+				'garanzie'  => array(
+					'Spedizione in 2-4 giorni lavorativi',
+					'Reso entro 14 giorni',
+					'Pagamenti sicuri, dati cifrati',
+				),
+			),
+			'en' => array(
+				'occhiello' => 'Checkout',
+				'titolo'    => 'Complete your order',
+				'passi'     => array( 'Cart', 'Checkout', 'Confirmation' ),
+				'indietro'  => 'Back to cart',
+				'sicuro'    => 'Secure connection',
+				'garanzie'  => array(
+					'Shipping in 2-4 business days',
+					'Returns within 14 days',
+					'Secure payments, encrypted data',
+				),
+			),
+			'fr' => array(
+				'occhiello' => 'Paiement',
+				'titolo'    => 'Finalisez votre commande',
+				'passi'     => array( 'Panier', 'Paiement', 'Confirmation' ),
+				'indietro'  => 'Retour au panier',
+				'sicuro'    => 'Connexion sécurisée',
+				'garanzie'  => array(
+					'Expédition sous 2 à 4 jours ouvrés',
+					'Retours sous 14 jours',
+					'Paiements sécurisés, données chiffrées',
+				),
+			),
+			'de' => array(
+				'occhiello' => 'Kasse',
+				'titolo'    => 'Bestellung abschließen',
+				'passi'     => array( 'Warenkorb', 'Kasse', 'Bestätigung' ),
+				'indietro'  => 'Zurück zum Warenkorb',
+				'sicuro'    => 'Sichere Verbindung',
+				'garanzie'  => array(
+					'Versand in 2-4 Werktagen',
+					'Rückgabe innerhalb von 14 Tagen',
+					'Sichere Zahlung, verschlüsselte Daten',
+				),
+			),
+			'es' => array(
+				'occhiello' => 'Pago',
+				'titolo'    => 'Completa tu pedido',
+				'passi'     => array( 'Carrito', 'Pago', 'Confirmación' ),
+				'indietro'  => 'Volver al carrito',
+				'sicuro'    => 'Conexión segura',
+				'garanzie'  => array(
+					'Envío en 2-4 días laborables',
+					'Devoluciones en 14 días',
+					'Pagos seguros, datos cifrados',
+				),
+			),
+			'nl' => array(
+				'occhiello' => 'Afrekenen',
+				'titolo'    => 'Rond je bestelling af',
+				'passi'     => array( 'Winkelwagen', 'Afrekenen', 'Bevestiging' ),
+				'indietro'  => 'Terug naar winkelwagen',
+				'sicuro'    => 'Beveiligde verbinding',
+				'garanzie'  => array(
+					'Verzending binnen 2-4 werkdagen',
+					'Retourneren binnen 14 dagen',
+					'Veilig betalen, versleutelde gegevens',
+				),
+			),
+			'pl' => array(
+				'occhiello' => 'Płatność',
+				'titolo'    => 'Dokończ zamówienie',
+				'passi'     => array( 'Koszyk', 'Płatność', 'Potwierdzenie' ),
+				'indietro'  => 'Wróć do koszyka',
+				'sicuro'    => 'Bezpieczne połączenie',
+				'garanzie'  => array(
+					'Wysyłka w 2-4 dni robocze',
+					'Zwrot w ciągu 14 dni',
+					'Bezpieczne płatności, szyfrowane dane',
+				),
+			),
+		)
+	);
+}
+}
+
+/**
+ * Da "en_US", "pt-br", "de_DE_formal" tiene le prime lettere: "en", "pt",
+ * "de". Quello che non sembra una lingua torna vuoto.
+ */
+if ( ! function_exists( 'tdt_pagamento_sigla' ) ) {
+function tdt_pagamento_sigla( $codice ) {
+	if ( is_object( $codice ) && method_exists( $codice, 'getInternalCode' ) ) {
+		$codice = $codice->getInternalCode();
+	}
+	if ( ! is_string( $codice ) ) {
+		return '';
+	}
+	$parti = preg_split( '/[-_]/', strtolower( trim( $codice ) ) );
+	$sigla = $parti[0];
+	/* WPML in certi momenti risponde "all": non e' una lingua */
+	if ( 'all' === $sigla || ! preg_match( '/^[a-z]{2,3}$/', $sigla ) ) {
+		return '';
+	}
+	return $sigla;
+}
+}
+
+/**
+ * La lingua della pagina. Prima la chiede al plugin di traduzione, se ce
+ * n-e' uno, poi a WordPress. 'plugin' dice se la risposta l-ha data un
+ * plugin di traduzione: serve a tdt_pagamento_attributi.
+ */
+if ( ! function_exists( 'tdt_pagamento_lingua' ) ) {
+function tdt_pagamento_lingua() {
+	$risposte = array();
+
+	/* WPML (anche Polylang risponde a questa domanda) */
+	$risposte[] = apply_filters( 'wpml_current_language', null );
+	/* Polylang */
+	if ( function_exists( 'pll_current_language' ) ) {
+		$risposte[] = pll_current_language( 'slug' );
+	}
+	/* TranslatePress la tiene in una variabile, nella forma "en_US" */
+	if ( ! empty( $GLOBALS['TRP_LANGUAGE'] ) ) {
+		$risposte[] = $GLOBALS['TRP_LANGUAGE'];
+	}
+	/* Weglot: protetto, se non e' pronto non deve fermare la cassa */
+	if ( function_exists( 'weglot_get_current_language' ) ) {
+		try {
+			$risposte[] = weglot_get_current_language();
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+	}
+
+	$lingua = array( 'sigla' => '', 'plugin' => false );
+	foreach ( $risposte as $codice ) {
+		$sigla = tdt_pagamento_sigla( $codice );
+		if ( $sigla ) {
+			$lingua = array( 'sigla' => $sigla, 'plugin' => true );
+			break;
+		}
+	}
+	if ( ! $lingua['sigla'] ) {
+		$lingua['sigla'] = tdt_pagamento_sigla( get_locale() );
+	}
+
+	return apply_filters( 'tdt_pagamento_lingua', $lingua );
+}
+}
+
+/**
+ * Indirizzi e testi gia' nella lingua della pagina. I testi si cambiano in
+ * tdt_pagamento_traduzioni, qui sopra.
+ */
+if ( ! function_exists( 'tdt_pagamento_config' ) ) {
+function tdt_pagamento_config() {
+	$lingua = tdt_pagamento_lingua();
+	$tutte  = tdt_pagamento_traduzioni();
+
+	/* si parte dall-italiano, cosi' una frase mancante non lascia un buco */
+	$testi    = isset( $tutte['it'] ) ? (array) $tutte['it'] : array();
+	$tradotto = isset( $tutte[ $lingua['sigla'] ] );
+	if ( $tradotto ) {
+		$testi = array_merge( $testi, (array) $tutte[ $lingua['sigla'] ] );
+	}
+
+	$carrello = '';
+	if ( function_exists( 'wc_get_cart_url' ) ) {
+		$carrello = wc_get_cart_url();
+	}
+	/* il carrello nella lingua della pagina. TranslatePress e Weglot
+	   correggono da soli i link sulla pagina finita; Polylang e WPML no */
+	if ( function_exists( 'pll_get_post' ) && function_exists( 'wc_get_page_id' ) ) {
+		$id = pll_get_post( wc_get_page_id( 'cart' ) );
+		if ( $id && get_permalink( $id ) ) {
+			$carrello = get_permalink( $id );
+		}
+	}
+	if ( $carrello && defined( 'ICL_SITEPRESS_VERSION' ) ) {
+		$carrello = apply_filters( 'wpml_permalink', $carrello, null );
+	}
+	if ( ! $carrello ) {
+		$carrello = home_url( '/carrello/' );
+	}
+
+	return apply_filters(
+		'tdt_pagamento_config',
+		array(
+			'carrello'     => $carrello,
+			'lingua'       => $tradotto ? $lingua['sigla'] : 'it',
+			/* i testi escono gia' tradotti: i plugin che traducono la pagina
+			   finita non devono ritradurli */
+			'non_tradurre' => $tradotto && $lingua['plugin'],
+			'testi'        => $testi,
+		)
+	);
+}
+}
+
+/**
+ * Classe e attributi per gli elementi con i testi di questo frammento.
+ * Quando i testi escono gia' tradotti da qui, dicono a TranslatePress,
+ * Weglot e Google Traduttore di lasciarli stare. Quando la lingua non e'
+ * tra quelle scritte sopra, o nessun plugin l-ha indicata, il testo esce in
+ * italiano senza blocchi, come prima: chi traduce la pagina lo traduce.
+ */
+if ( ! function_exists( 'tdt_pagamento_attributi' ) ) {
+function tdt_pagamento_attributi( $classe, $cfg ) {
+	if ( empty( $cfg['non_tradurre'] ) ) {
+		return ' class="' . esc_attr( $classe ) . '"';
+	}
+	return ' class="' . esc_attr( $classe . ' notranslate' ) . '"'
+		. ' translate="no" data-no-translation="" data-wg-notranslate=""';
+}
+}
+
+/**
+ * Carica CSS e JS solo dove servono. Sulla pagina di ringraziamento e su
+ * "paga ordine" la cassa non c'e': li' non serve niente.
+ */
+if ( ! function_exists( 'tdt_pagamento_avvia' ) ) {
+function tdt_pagamento_avvia() {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
+	if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+		return;
+	}
+
+	wp_register_style( 'tdt-pagamento', false, array(), null );
+	wp_enqueue_style( 'tdt-pagamento' );
+	wp_add_inline_style( 'tdt-pagamento', tdt_pagamento_css() );
+
+	wp_register_script( 'tdt-pagamento', false, array(), null, true );
+	wp_enqueue_script( 'tdt-pagamento' );
+	wp_add_inline_script(
+		'tdt-pagamento',
+		'var TDT_PAGAMENTO=' . wp_json_encode( tdt_pagamento_config() ) . ';',
+		'before'
+	);
+	wp_add_inline_script( 'tdt-pagamento', tdt_pagamento_js() );
+}
+}
+add_action( 'wp_enqueue_scripts', 'tdt_pagamento_avvia', 20 );
+
+/**
+ * La classe che regge il foglio di stile va sul <body>. Se la mettesse il
+ * codice, che gira in fondo alla pagina, il browser farebbe in tempo a
+ * disegnare la cassa nuda e si vedrebbe il lampo della pagina vecchia.
+ */
+if ( ! function_exists( 'tdt_pagamento_classe_body' ) ) {
+function tdt_pagamento_classe_body( $classi ) {
+	if ( function_exists( 'is_checkout' ) && is_checkout()
+		&& ! ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) ) {
+		$classi[] = 'tdtk';
+	}
+	return $classi;
+}
+}
+add_filter( 'body_class', 'tdt_pagamento_classe_body' );
+
+/**
+ * L-intestazione: titolo e i tre passi, con il secondo acceso.
+ */
+if ( ! function_exists( 'tdt_pagamento_intestazione' ) ) {
+function tdt_pagamento_intestazione() {
+	static $fatto = false;
+	if ( $fatto || ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
+	$fatto = true;
+
+	$cfg = tdt_pagamento_config();
+	$t   = $cfg['testi'];
+
+	echo '<div' . tdt_pagamento_attributi( 'tdtk__head', $cfg ) . '>';
+	echo '<span class="tdtk__occhiello">' . esc_html( $t['occhiello'] ) . '</span>';
+	echo '<h1 class="tdtk__titolo">' . esc_html( $t['titolo'] ) . '</h1>';
+	echo '<ol class="tdtk__passi">';
+	$i = 0;
+	foreach ( (array) $t['passi'] as $nome ) {
+		if ( $i ) {
+			echo '<i></i>';
+		}
+		$classe = 1 === $i ? 'is-on' : ( 0 === $i ? 'is-fatto' : '' );
+		$segno  = 0 === $i ? '&#10003;' : (string) ( $i + 1 );
+		echo '<li class="' . esc_attr( $classe ) . '"><b>' . $segno . '</b>';
+		echo esc_html( $nome ) . '</li>';
+		$i++;
+	}
+	echo '</ol></div>';
+}
+}
+/* prima della barra del codice sconto e degli avvisi, che stanno a 10 */
+add_action( 'woocommerce_before_checkout_form', 'tdt_pagamento_intestazione', 5 );
+/* se il carrello e' vuoto la cassa mostra un altro modello */
+add_action( 'woocommerce_cart_is_empty', 'tdt_pagamento_intestazione', 5 );
+
+/**
+ * La scheda del riepilogo. Il titolo e #order_review sono due elementi
+ * separati che WooCommerce fa flottare a destra: qui si aprono e si chiudono
+ * dentro un contenitore solo, usando i due agganci che stanno esattamente
+ * prima e dopo. Prima lo faceva il codice spostandoli, e lo spostamento si
+ * vedeva a pagina gia' disegnata.
+ */
+if ( ! function_exists( 'tdt_pagamento_riepilogo_apri' ) ) {
+function tdt_pagamento_riepilogo_apri() {
+	echo '<div class="tdtk-riepilogo">';
+}
+}
+add_action( 'woocommerce_checkout_before_order_review_heading', 'tdt_pagamento_riepilogo_apri' );
+
+if ( ! function_exists( 'tdt_pagamento_riepilogo_chiudi' ) ) {
+function tdt_pagamento_riepilogo_chiudi() {
+	$cfg = tdt_pagamento_config();
+	$gar = isset( $cfg['testi']['garanzie'] ) ? (array) $cfg['testi']['garanzie'] : array();
+	if ( $gar ) {
+		$spunta = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"'
+			. ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
+			. ' aria-hidden="true"><path d="M3 8.4l3.2 3.2L13 5"/></svg>';
+		echo '<ul' . tdt_pagamento_attributi( 'tdtk-gar', $cfg ) . '>';
+		foreach ( $gar as $voce ) {
+			echo '<li>' . $spunta . esc_html( $voce ) . '</li>';
+		}
+		echo '</ul>';
+	}
+	echo '</div>';
+}
+}
+add_action( 'woocommerce_checkout_after_order_review', 'tdt_pagamento_riepilogo_chiudi' );
+
+/**
+ * Il ritorno al carrello, sotto la colonna dei dati. Il blocco della
+ * traduzione sta sulla scritta, non sul link: cosi' TranslatePress e Weglot
+ * possono ancora portare il link al carrello nella lingua giusta.
+ */
+if ( ! function_exists( 'tdt_pagamento_indietro' ) ) {
+function tdt_pagamento_indietro() {
+	$cfg = tdt_pagamento_config();
+	$t   = $cfg['testi'];
+	echo '<div class="tdtk-sotto"><a class="tdtk-indietro" href="'
+		. esc_url( $cfg['carrello'] ) . '">';
+	echo '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"'
+		. ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+		. '<path d="M13 8H3M7 4L3 8l4 4"/></svg>';
+	echo '<span' . tdt_pagamento_attributi( 'tdtk-indietro__testo', $cfg ) . '>'
+		. esc_html( $t['indietro'] ) . '</span></a></div>';
+}
+}
+add_action( 'woocommerce_checkout_after_customer_details', 'tdt_pagamento_indietro' );
+
+/**
+ * Il vestito.
+ */
+if ( ! function_exists( 'tdt_pagamento_css' ) ) {
+function tdt_pagamento_css() {
+	return <<<'CSS'
+/* ==========================================================================
+   THE DOUBLE TWENTY — cassa
+   Tutto sotto .tdtk. Unica eccezione in fondo: le tendine di select2, che
+   WooCommerce appende in fondo alla pagina, fuori da qui.
+   ========================================================================== */
+/* .tdtk sta sul <body> (ce la mette PHP) e la pagina e' .woocommerce: e' lei
+   a portare colori, larghezza e spazio per il menu, cosi' il vestito c-è gia'
+   nel primo disegno. */
+.tdtk .woocommerce{
+ --ink:#111111;
+ --muted:#6B6B6B;
+ --tenue:#8A8A8A;
+ --line:rgba(17,17,17,.10);
+ --linea-forte:rgba(17,17,17,.22);
+ --soft:#F7F7F5;
+ --white:#FFFFFF;
+ --ok:#1D7A4C;
+ --err:#B4553F;
+ --ease:cubic-bezier(.22,1,.36,1);
+ --raggio:22px;
+ --gut:clamp(18px,5vw,72px);
+ --nav:104px;
+ display:block;
+ width:100%;max-width:calc(1180px + 2 * var(--gut));margin-inline:auto;
+ padding:calc(var(--nav) + clamp(26px,5vh,54px)) var(--gut) clamp(60px,10vh,120px);
+ background:var(--white);color:var(--ink);
+ font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+ font-size:16px;line-height:1.5;
+ -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+/* Il menu fisso cambia altezza con la larghezza: 104, 88, 63. Valori
+   misurati, servono al primo disegno; poi il codice legge quello vero.
+   Da telefono il menu si e' stretto il 20 settembre 2026 (era 78). */
+@media (max-width:1200px){.tdtk .woocommerce{--nav:88px}}
+@media (max-width:899px){.tdtk .woocommerce{--nav:63px}}
+.tdtk .woocommerce,.tdtk .woocommerce *,
+.tdtk .woocommerce *::before,.tdtk .woocommerce *::after{box-sizing:border-box}
+.tdtk .tdtk__head{margin-bottom:clamp(28px,4.6vh,50px)}
+/* il carrello vuoto arriva dentro un involucro suo: reso trasparente */
+.tdtk .wc-empty-cart-message{display:contents}
+
+@keyframes tdtk-su{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes tdtk-gira{to{transform:rotate(360deg)}}
+/* Le entrate sono qui e non nel codice: scritte in CSS partono col primo
+   fotogramma invece che quando il codice ha finito di girare. */
+.tdtk .tdtk__head > *,
+.tdtk .woocommerce-notices-wrapper > *,
+.tdtk .woocommerce-form-coupon-toggle,
+.tdtk .woocommerce-billing-fields,.tdtk .woocommerce-additional-fields,
+.tdtk .tdtk-riepilogo,.tdtk .tdtk-sotto{animation:tdtk-su .8s var(--ease) both}
+.tdtk .tdtk__head > *:nth-child(1){animation-delay:.02s}
+.tdtk .tdtk__head > *:nth-child(2){animation-delay:.09s}
+.tdtk .tdtk__head > *:nth-child(3){animation-delay:.16s}
+.tdtk .woocommerce-notices-wrapper > *{animation-delay:.2s}
+.tdtk .woocommerce-form-coupon-toggle{animation-delay:.24s}
+.tdtk .woocommerce-billing-fields{animation-delay:.3s}
+.tdtk .woocommerce-additional-fields{animation-delay:.38s}
+.tdtk .tdtk-riepilogo{animation-delay:.42s}
+.tdtk .tdtk-sotto{animation-delay:.5s}
+
+/* ==========================================================================
+   INTESTAZIONE
+   ========================================================================== */
+.tdtk__occhiello{display:block;font-size:.76rem;font-weight:500;letter-spacing:.16em;
+ text-transform:uppercase;color:var(--muted)}
+.tdtk__titolo{margin:14px 0 0;font-size:clamp(2.05rem,5vw,3.3rem);font-weight:600;
+ letter-spacing:-.035em;line-height:1.04;color:var(--ink)}
+.tdtk__passi{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;
+ margin:clamp(22px,3.4vh,34px) 0 clamp(28px,4.6vh,50px);padding:0;list-style:none}
+.tdtk__passi li{display:inline-flex;align-items:center;gap:9px;font-size:.88rem;
+ color:var(--tenue);letter-spacing:-.01em}
+.tdtk__passi li b{display:grid;place-items:center;width:25px;height:25px;flex:none;
+ border:1px solid var(--line);border-radius:50%;font-size:.76rem;font-weight:500;
+ color:var(--tenue);background:var(--white);transition:all .4s var(--ease)}
+.tdtk__passi li.is-on{color:var(--ink);font-weight:500}
+.tdtk__passi li.is-on b{background:var(--ink);border-color:var(--ink);color:var(--white)}
+.tdtk__passi li.is-fatto{color:var(--muted)}
+.tdtk__passi li.is-fatto b{border-color:var(--linea-forte);color:var(--ink)}
+.tdtk__passi i{display:block;width:clamp(16px,3vw,30px);height:1px;background:var(--line);
+ flex:none}
+
+/* ==========================================================================
+   AVVISI
+   ========================================================================== */
+.tdtk .woocommerce-message,.tdtk .woocommerce-info,.tdtk .woocommerce-error,
+.tdtk .woocommerce-NoticeGroup li{
+ display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;
+ margin:0 0 14px;padding:15px 18px;
+ border:1px solid var(--line);border-left:2px solid var(--ink);border-radius:14px;
+ background:var(--soft);color:var(--ink);
+ font-size:.93rem;line-height:1.5;list-style:none}
+.tdtk .woocommerce-message::before,.tdtk .woocommerce-info::before,
+.tdtk .woocommerce-error::before,.tdtk .woocommerce-NoticeGroup li::before{content:none}
+.tdtk .woocommerce-error,.tdtk .woocommerce-NoticeGroup .woocommerce-error li{
+ border-left-color:var(--err);background:rgba(180,85,63,.06);color:var(--err)}
+.tdtk ul.woocommerce-error{margin:0 0 14px;padding:0;border:0;background:none;display:block}
+.tdtk .woocommerce-message .button,.tdtk .woocommerce-info .button{
+ display:inline-flex;align-items:center;min-height:42px;
+ margin:0 0 0 auto !important;padding:0 20px !important;
+ border:1px solid var(--ink) !important;border-radius:999px !important;
+ background:var(--white) !important;background-image:none !important;
+ color:var(--ink) !important;
+ font:inherit !important;font-size:.88rem !important;font-weight:500 !important;
+ line-height:1 !important;letter-spacing:normal !important;text-transform:none !important;
+ text-decoration:none !important;box-shadow:none !important;white-space:nowrap;
+ transition:background-color .3s var(--ease),color .3s var(--ease)}
+.tdtk .woocommerce-message .button:hover,.tdtk .woocommerce-info .button:hover{
+ background:var(--ink) !important;color:var(--white) !important}
+
+/* ==========================================================================
+   BARRA DEL CODICE SCONTO (sta sopra il modulo, la lascio dov-è)
+   ========================================================================== */
+.tdtk .woocommerce-form-coupon-toggle{margin:0 0 16px}
+.tdtk .woocommerce-form-coupon-toggle .woocommerce-info{
+ border-left-width:1px;font-size:.92rem;color:var(--muted)}
+.tdtk .woocommerce-form-coupon-toggle .showcoupon{color:var(--ink);font-weight:500;
+ text-decoration:underline;text-underline-offset:3px;
+ transition:opacity .3s var(--ease)}
+.tdtk .woocommerce-form-coupon-toggle .showcoupon:hover{opacity:.6}
+.tdtk form.checkout_coupon{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;
+ margin:0 0 18px !important;padding:18px !important;
+ border:1px solid var(--line) !important;border-radius:16px;background:var(--soft)}
+.tdtk form.checkout_coupon p{margin:0 !important;padding:0}
+.tdtk form.checkout_coupon .form-row-first{flex:1 1 220px;min-width:0}
+.tdtk form.checkout_coupon .form-row-last{flex:0 0 auto}
+.tdtk form.checkout_coupon .clear{display:none}
+
+/* ==========================================================================
+   IMPIANTO A DUE COLONNE
+   ========================================================================== */
+/* La griglia va sul modulo, non su #customer_details: il riepilogo non e'
+   dentro le colonne, sono due fratelli (il titolo e #order_review) che
+   WooCommerce fa flottare a destra. Il codice li raccoglie in
+   .tdtk-riepilogo, cosi' qui diventano una scheda sola. */
+.tdtk form.checkout{display:grid;
+ grid-template-columns:minmax(0,1.5fr) minmax(320px,.95fr);
+ column-gap:clamp(20px,2.6vw,38px);row-gap:0;align-items:start}
+.tdtk form.checkout > *{min-width:0}
+.tdtk #customer_details.col2-set{grid-column:1;grid-row:1;display:block;
+ float:none !important;width:auto !important;max-width:none !important;margin:0}
+.tdtk #customer_details.col2-set::before,
+.tdtk #customer_details.col2-set::after{content:none;display:none}
+.tdtk #customer_details .col-1,.tdtk #customer_details .col-2{
+ float:none !important;width:auto !important;max-width:none !important;margin:0}
+.tdtk #customer_details .col-2:empty{display:none}
+
+/* --- colonna di sinistra: le schede dei dati --- */
+.tdtk .woocommerce-billing-fields,.tdtk .woocommerce-additional-fields,
+.tdtk .woocommerce-shipping-fields{
+ margin:0 0 clamp(14px,1.8vw,20px);padding:clamp(20px,2.4vw,30px);
+ border:1px solid var(--line);border-radius:var(--raggio);background:var(--white)}
+.tdtk .woocommerce-shipping-fields:empty,
+.tdtk .woocommerce-additional-fields:empty{display:none;margin:0;padding:0;border:0}
+.tdtk .woocommerce-billing-fields > h3,.tdtk .woocommerce-additional-fields > h3,
+.tdtk .woocommerce-shipping-fields > h3,.tdtk #order_review_heading{
+ margin:0 0 20px !important;padding:0 !important;
+ /* qualcuno da fuori disegna un bordo di 2px sotto i titoli: qui no */
+ border:0 !important;box-shadow:none !important;background:none !important;
+ font-size:.72rem !important;font-weight:500;letter-spacing:.18em;text-transform:uppercase;
+ color:var(--muted);line-height:1.4}
+
+/* ==========================================================================
+   I CAMPI
+   ========================================================================== */
+.tdtk .woocommerce-billing-fields__field-wrapper,
+.tdtk .woocommerce-shipping-fields__field-wrapper{
+ display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(12px,1.4vw,18px)}
+.tdtk .form-row{display:flex !important;flex-direction:column;
+ float:none !important;width:auto !important;margin:0 0 16px !important;padding:0 !important}
+.tdtk .form-row-first,.tdtk #billing_postcode_field,.tdtk #billing_phone_field,
+.tdtk #shipping_postcode_field{grid-column:1}
+.tdtk .form-row-last,.tdtk #billing_city_field,.tdtk #billing_email_field,
+.tdtk #shipping_city_field{grid-column:2}
+.tdtk .form-row-wide,.tdtk #billing_company_field,.tdtk #billing_country_field,
+.tdtk #billing_address_1_field,.tdtk #billing_address_2_field,
+.tdtk #billing_state_field,.tdtk #order_comments_field{grid-column:1/-1}
+/* le tre sopra rimettono in riga i campi che WooCommerce fa larghi */
+.tdtk #billing_postcode_field,.tdtk #billing_phone_field{grid-column:1}
+.tdtk #billing_city_field,.tdtk #billing_email_field{grid-column:2}
+
+.tdtk .form-row > label{order:-1;margin:0 0 8px;padding:0;
+ font-size:.76rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+ color:var(--muted);line-height:1.3}
+.tdtk .form-row > label .required{margin-left:2px;color:var(--err);
+ text-decoration:none;border:0}
+.tdtk .form-row > label .optional{margin-left:4px;font-size:.72rem;font-weight:400;
+ letter-spacing:0;text-transform:none;color:var(--tenue)}
+.tdtk .form-row > label.screen-reader-text{position:absolute;width:1px;height:1px;
+ overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tdtk .woocommerce-input-wrapper{display:block;width:100%}
+
+.tdtk .input-text,.tdtk input[type="text"],.tdtk input[type="email"],
+.tdtk input[type="tel"],.tdtk input[type="password"],.tdtk select,.tdtk textarea{
+ display:block;width:100%;height:52px;
+ margin:0 !important;padding:0 15px !important;
+ border:1px solid var(--line) !important;border-radius:12px !important;
+ background:var(--soft) !important;background-image:none;box-shadow:none !important;
+ font:inherit !important;font-size:.98rem !important;color:var(--ink) !important;
+ line-height:normal;
+ transition:border-color .3s var(--ease),background-color .3s var(--ease),
+            box-shadow .3s var(--ease)}
+.tdtk textarea{height:auto;min-height:118px;padding:14px 15px !important;
+ line-height:1.55;resize:vertical}
+.tdtk .input-text::placeholder,.tdtk textarea::placeholder{color:rgba(17,17,17,.3)}
+.tdtk .input-text:hover,.tdtk select:hover,.tdtk textarea:hover{
+ border-color:rgba(17,17,17,.18) !important}
+.tdtk .input-text:focus,.tdtk select:focus,.tdtk textarea:focus{
+ outline:none;background:var(--white) !important;
+ border-color:var(--linea-forte) !important;
+ box-shadow:0 0 0 3px rgba(17,17,17,.06) !important}
+/* campo sbagliato: si vede, ma senza urlare */
+.tdtk .form-row.woocommerce-invalid .input-text,
+.tdtk .form-row.woocommerce-invalid select,
+.tdtk .form-row.woocommerce-invalid .select2-selection{
+ border-color:var(--err) !important;box-shadow:0 0 0 3px rgba(180,85,63,.1) !important}
+.tdtk .form-row.woocommerce-validated .input-text{border-color:rgba(29,122,76,.45) !important}
+.tdtk .form-row .woocommerce-input-wrapper > .description{margin:8px 0 0;
+ font-size:.82rem;color:var(--tenue)}
+
+/* le tendine di WooCommerce (select2) */
+.tdtk .select2-container{width:100% !important}
+.tdtk .select2-container--default .select2-selection--single{
+ height:52px;border:1px solid var(--line);border-radius:12px;background:var(--soft);
+ transition:border-color .3s var(--ease),background-color .3s var(--ease)}
+.tdtk .select2-container--default .select2-selection--single:hover{
+ border-color:rgba(17,17,17,.18)}
+.tdtk .select2-container--default .select2-selection--single .select2-selection__rendered{
+ padding:0 40px 0 15px;line-height:50px;font-size:.98rem;color:var(--ink)}
+.tdtk .select2-container--default .select2-selection--single .select2-selection__placeholder{
+ color:rgba(17,17,17,.3)}
+.tdtk .select2-container--default .select2-selection--single .select2-selection__arrow{
+ top:0;right:12px;height:50px;width:14px}
+.tdtk .select2-container--default .select2-selection--single .select2-selection__arrow b{
+ border:0;width:9px;height:9px;margin:-5px 0 0 -5px;
+ border-right:1.4px solid var(--muted);border-bottom:1.4px solid var(--muted);
+ transform:rotate(45deg) translate(-2px,-2px)}
+.tdtk .select2-container--default.select2-container--open
+ .select2-selection--single .select2-selection__arrow b{
+ transform:rotate(225deg) translate(-4px,-4px)}
+.tdtk .select2-container--default.select2-container--open .select2-selection--single{
+ background:var(--white);border-color:var(--linea-forte)}
+
+/* ==========================================================================
+   COLONNA DI DESTRA: la scheda dell-ordine
+   Il bordo sta sulla colonna, non su #order_review: WooCommerce rifa' il
+   contenuto di quello a ogni ricalcolo, e la scheda si vedrebbe sfarfallare.
+   ========================================================================== */
+.tdtk .tdtk-sotto{grid-column:1;grid-row:2}
+.tdtk .tdtk-riepilogo{grid-column:2;grid-row:1 / span 2;
+ position:sticky;top:calc(var(--nav) + 18px);
+ padding:clamp(20px,2.4vw,30px);
+ border:1px solid var(--line);border-radius:var(--raggio);background:var(--soft)}
+/* #order_review si porta dietro un riquadro suo, messo con forza da fuori:
+   dentro la scheda farebbe un doppio bordo, e i due filetti laterali si
+   vedono anche quando quello sopra e sotto non c-è */
+.tdtk #order_review{float:none !important;width:auto !important;
+ margin:0 !important;padding:0 !important;
+ border:0 !important;border-radius:0 !important;
+ background:none !important;box-shadow:none !important}
+.tdtk #order_review_heading{float:none !important;width:auto !important}
+
+.tdtk table.woocommerce-checkout-review-order-table,
+.tdtk table.woocommerce-checkout-review-order-table tbody,
+.tdtk table.woocommerce-checkout-review-order-table tfoot,
+.tdtk table.woocommerce-checkout-review-order-table tr,
+.tdtk table.woocommerce-checkout-review-order-table th,
+.tdtk table.woocommerce-checkout-review-order-table td{
+ display:block;width:auto;border:0;padding:0;margin:0;background:none}
+.tdtk table.woocommerce-checkout-review-order-table{border-collapse:separate;
+ border-spacing:0;margin:0}
+.tdtk table.woocommerce-checkout-review-order-table thead{display:none}
+.tdtk table.woocommerce-checkout-review-order-table td::before,
+.tdtk table.woocommerce-checkout-review-order-table th::before{content:none !important}
+
+.tdtk table.woocommerce-checkout-review-order-table tr.cart_item{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;
+ padding:13px 0;border-top:1px solid var(--line)}
+.tdtk table.woocommerce-checkout-review-order-table tbody tr.cart_item:first-child{
+ border-top:0;padding-top:0}
+.tdtk table.woocommerce-checkout-review-order-table td.product-name{
+ font-size:.9rem;line-height:1.42;color:var(--ink);text-align:left !important;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.tdtk table.woocommerce-checkout-review-order-table td.product-name .product-quantity{
+ font-weight:500;color:var(--muted);white-space:nowrap}
+.tdtk table.woocommerce-checkout-review-order-table td.product-name dl.variation{
+ display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:7px 0 0;font-size:.76rem}
+.tdtk table.woocommerce-checkout-review-order-table td.product-name dl.variation dt{
+ margin:0;font-weight:400;color:var(--tenue)}
+.tdtk table.woocommerce-checkout-review-order-table td.product-name dl.variation dd{margin:0}
+.tdtk table.woocommerce-checkout-review-order-table td.product-name dl.variation dd p{
+ display:inline-flex;margin:0;padding:3px 9px;border-radius:999px;
+ background:rgba(29,122,76,.1);color:var(--ok);font-weight:500}
+.tdtk table.woocommerce-checkout-review-order-table td.product-total{
+ text-align:right !important;white-space:nowrap;font-size:.92rem;font-weight:500;
+ line-height:1.35}
+.tdtk table.woocommerce-checkout-review-order-table td.product-total del{
+ display:block;font-size:.8rem;font-weight:400;color:var(--tenue);opacity:.75}
+.tdtk table.woocommerce-checkout-review-order-table td.product-total ins{
+ text-decoration:none;background:none;color:var(--ink)}
+
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr{
+ display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+ padding:11px 0;border-top:1px solid var(--line)}
+.tdtk table.woocommerce-checkout-review-order-table tfoot th{
+ flex:1 1 auto;text-align:left !important;white-space:normal;
+ font-size:.93rem;font-weight:400;color:var(--muted)}
+.tdtk table.woocommerce-checkout-review-order-table tfoot td{
+ flex:0 0 auto;text-align:right !important;white-space:nowrap;
+ font-size:.93rem;color:var(--ink);font-weight:500}
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.tdt-qd-risparmio th,
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.tdt-qd-risparmio td,
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.cart-discount th,
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.cart-discount td{
+ color:var(--ok)}
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.tdt-qd-risparmio small{
+ color:var(--tenue)}
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.order-total{
+ margin-top:4px;padding-top:15px;border-top:1px solid var(--linea-forte)}
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.order-total th{
+ font-size:1rem;font-weight:500;color:var(--ink)}
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.order-total td,
+.tdtk table.woocommerce-checkout-review-order-table tfoot tr.order-total .amount{
+ font-size:clamp(1.3rem,2vw,1.62rem);font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+
+/* ==========================================================================
+   METODI DI PAGAMENTO
+   ========================================================================== */
+.tdtk #payment{margin:20px 0 0;padding:0;border:0;background:none;border-radius:0}
+.tdtk #payment::before,.tdtk #payment::after{content:none}
+.tdtk #payment ul.payment_methods{display:grid;gap:9px;
+ margin:0 0 18px;padding:18px 0 0;border:0;border-top:1px solid var(--line);
+ list-style:none}
+.tdtk #payment ul.payment_methods li{margin:0;padding:0;list-style:none;
+ background:none;border:0}
+.tdtk #payment ul.payment_methods li.wc_payment_method{
+ /* pallino e nome sono fratelli, non annidati: senza griglia finiscono su
+    due righe diverse */
+ display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;
+ border:1px solid var(--line);border-radius:14px;background:var(--white);
+ overflow:hidden;transition:border-color .35s var(--ease),box-shadow .35s var(--ease)}
+.tdtk #payment ul.payment_methods li.wc_payment_method:hover{
+ border-color:rgba(17,17,17,.24)}
+.tdtk #payment ul.payment_methods li.wc_payment_method:has(input:checked){
+ border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.tdtk #payment ul.payment_methods li.wc_payment_method > label{
+ grid-column:2;
+ display:flex !important;align-items:center;gap:11px;
+ margin:0;padding:15px 16px 15px 11px;cursor:pointer;
+ font-size:.95rem;font-weight:500;letter-spacing:-.01em;color:var(--ink);
+ text-transform:none;line-height:1.35}
+.tdtk #payment ul.payment_methods li.wc_payment_method > input[type="radio"]{
+ grid-column:1;width:18px;height:18px;flex:none;
+ margin:0 0 0 16px !important;accent-color:#111;cursor:pointer}
+.tdtk #payment ul.payment_methods li.wc_payment_method > label img{
+ max-height:24px;width:auto;margin:0 0 0 auto;padding:0;border-radius:4px}
+.tdtk #payment ul.payment_methods li .payment_box{
+ grid-column:1/-1;
+ margin:0;padding:0 16px 16px 45px;border:0;border-radius:0;background:none;
+ font-size:.88rem;line-height:1.55;color:var(--muted)}
+.tdtk #payment ul.payment_methods li .payment_box::before{content:none}
+.tdtk #payment ul.payment_methods li .payment_box p:last-child{margin-bottom:0}
+/* nessun metodo disponibile: e' un problema, si vede che lo è */
+.tdtk #payment ul.payment_methods > li > .woocommerce-info{
+ margin:0;border-left-color:var(--err);background:rgba(180,85,63,.06);color:var(--err)}
+
+.tdtk #payment .form-row.place-order{margin:0 !important;padding:0 !important;
+ border:0;background:none}
+.tdtk #payment .woocommerce-terms-and-conditions-wrapper{margin:0 0 14px}
+.tdtk #payment .woocommerce-privacy-policy-text p{margin:0;
+ font-size:.8rem;line-height:1.55;color:var(--tenue)}
+.tdtk #payment .woocommerce-privacy-policy-text a{color:var(--muted);
+ text-decoration:underline;text-underline-offset:2px}
+.tdtk #payment .woocommerce-terms-and-conditions-checkbox-text{font-size:.86rem;
+ color:var(--muted)}
+
+.tdtk #place_order{
+ position:relative;overflow:hidden;
+ display:flex !important;align-items:center;justify-content:center;gap:10px;
+ width:100% !important;min-height:58px;float:none !important;
+ margin:0 !important;padding:0 24px !important;
+ border:0 !important;border-radius:999px !important;
+ background:var(--ink) !important;background-image:none !important;
+ color:var(--white) !important;
+ font:inherit !important;font-size:1.02rem !important;font-weight:500 !important;
+ line-height:1 !important;letter-spacing:-.01em !important;text-transform:none !important;
+ white-space:nowrap;cursor:pointer;
+ transition:background-color .3s var(--ease),box-shadow .4s var(--ease),
+            transform .3s var(--ease),opacity .3s var(--ease)}
+.tdtk #place_order:hover{background:#2a2a2a !important;
+ box-shadow:0 18px 40px -18px rgba(17,17,17,.62);transform:translateY(-1px)}
+.tdtk #place_order:active{transform:translateY(0)}
+.tdtk #place_order:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.tdtk #place_order[disabled]{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.tdtk #place_order::after{content:"";position:absolute;inset:0 auto 0 -60%;width:45%;
+ transform:skewX(-18deg);
+ background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);
+ transition:left .75s var(--ease)}
+.tdtk #place_order:hover::after{left:115%}
+
+/* garanzie e ritorno */
+.tdtk .tdtk-gar{display:grid;gap:9px;margin:18px 0 0;padding:0;list-style:none}
+.tdtk .tdtk-gar li{display:flex;align-items:flex-start;gap:9px;
+ font-size:.83rem;line-height:1.45;color:var(--muted)}
+.tdtk .tdtk-gar svg{width:14px;height:14px;flex:none;margin-top:3px;color:var(--ok)}
+.tdtk .tdtk-sotto{margin-top:clamp(16px,2vh,24px)}
+.tdtk .tdtk-indietro{display:inline-flex;align-items:center;gap:9px;
+ font-size:.92rem;color:var(--muted);text-decoration:none;
+ transition:color .3s var(--ease),gap .3s var(--ease)}
+.tdtk .tdtk-indietro:hover{color:var(--ink);gap:13px}
+.tdtk .tdtk-indietro svg{width:15px;height:15px;flex:none}
+
+/* mentre WooCommerce ricalcola */
+.tdtk .blockUI.blockOverlay{background:rgba(255,255,255,.62) !important;opacity:1 !important}
+.tdtk .blockUI.blockOverlay::before{content:"";position:absolute;left:50%;top:50%;
+ width:30px;height:30px;margin:-15px 0 0 -15px;
+ border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;
+ animation:tdtk-gira .75s linear infinite;background:none}
+
+/* ==========================================================================
+   SCHERMI STRETTI
+   Sotto i 921px WooCommerce allinea a destra con !important e ripete
+   l-intestazione dentro td::before: qui non serve, si spegne.
+   ========================================================================== */
+.tdtk table.shop_table_responsive td::before,
+.tdtk table.shop_table_responsive th::before{content:none !important}
+@media (max-width:980px){
+ /* a una colonna sola le collocazioni fisse creerebbero colonne e righe
+    implicite: vanno azzerate, e l-ordine si dice a mano. Il riepilogo sta
+    sotto perche' contiene il pagamento: prima si compila, poi si paga. */
+ .tdtk form.checkout{grid-template-columns:1fr}
+ .tdtk #customer_details.col2-set{grid-column:1;grid-row:auto;order:1}
+ .tdtk .tdtk-riepilogo{grid-column:1;grid-row:auto;order:2;position:static}
+ .tdtk .tdtk-sotto{grid-column:1;grid-row:auto;order:3;margin-top:0}
+}
+@media (max-width:620px){
+ .tdtk .woocommerce-billing-fields__field-wrapper,
+ .tdtk .woocommerce-shipping-fields__field-wrapper{grid-template-columns:1fr}
+ .tdtk .form-row,.tdtk .form-row-first,.tdtk .form-row-last,
+ .tdtk #billing_postcode_field,.tdtk #billing_city_field,
+ .tdtk #billing_phone_field,.tdtk #billing_email_field{grid-column:1 !important}
+ .tdtk form.checkout_coupon .form-row-last,
+ .tdtk form.checkout_coupon .form-row-last button{width:100%}
+ .tdtk .woocommerce-message .button,.tdtk .woocommerce-info .button{
+  margin-left:0 !important;width:100%;justify-content:center}
+}
+
+@media (prefers-reduced-motion:reduce){
+ .tdtk *,.tdtk *::before,.tdtk *::after{transition:none !important;animation:none !important}
+ .tdtk .woocommerce *{opacity:1 !important;transform:none !important}
+}
+
+/* ==========================================================================
+   Le tendine di select2 vivono in fondo alla pagina, fuori da .tdtk:
+   si agganciano alla classe che WooCommerce mette sul body, e questo foglio
+   viene caricato solo sulla cassa.
+   ========================================================================== */
+body.woocommerce-checkout .select2-dropdown{
+ border:1px solid rgba(17,17,17,.14);border-radius:12px;overflow:hidden;
+ box-shadow:0 26px 54px -32px rgba(17,17,17,.55)}
+body.woocommerce-checkout .select2-search--dropdown{padding:9px}
+body.woocommerce-checkout .select2-search--dropdown .select2-search__field{
+ height:42px;padding:0 12px;border:1px solid rgba(17,17,17,.12);border-radius:10px;
+ font:inherit;font-size:.94rem;outline:none}
+body.woocommerce-checkout .select2-results__option{padding:9px 14px;font-size:.94rem}
+body.woocommerce-checkout .select2-container--default
+ .select2-results__option--highlighted[aria-selected],
+body.woocommerce-checkout .select2-container--default
+ .select2-results__option--highlighted[data-selected]{
+ background:#111 !important;color:#fff !important}
+body.woocommerce-checkout .select2-container--default
+ .select2-results__option[aria-selected="true"],
+body.woocommerce-checkout .select2-container--default
+ .select2-results__option[data-selected="true"]{background:#F7F7F5;color:#111}
+CSS;
+}
+}
+
+/**
+ * Il comportamento. Qui dentro non c-è niente che tocchi il modulo, i totali
+ * o il pagamento: solo l-intestazione, le garanzie e le entrate.
+ */
+if ( ! function_exists( 'tdt_pagamento_js' ) ) {
+function tdt_pagamento_js() {
+	return <<<'JS'
+(function () {
+	'use strict';
+
+	/* Qui dentro non c-è niente che tocchi il modulo, i totali o il
+	   pagamento: e' la pagina dove passano i soldi. E non si costruisce
+	   nessun contenitore: la classe sul <body>, l-intestazione, la scheda
+	   del riepilogo, le garanzie e il ritorno al carrello li stampa PHP,
+	   percio' ci sono gia' nel primo disegno e la pagina non cambia forma
+	   sotto gli occhi. */
+
+	var scatola = document.querySelector('.woocommerce');
+	if (!scatola || scatola.getAttribute('data-tdtk')) { return; }
+	scatola.setAttribute('data-tdtk', '1');
+
+	/* lo spazio per il menu fisso: il CSS ha dei valori di ripiego buoni,
+	   qui si legge quello vero, cosi' se un domani il menu cambia altezza
+	   lo spazio si adegua lo stesso */
+	function misuraMenu() {
+		var n = document.querySelector('.dtnav, header.dtnav, .dtnav__bar');
+		if (!n) { return; }
+		var st = window.getComputedStyle(n);
+		if (st.position !== 'fixed' && st.position !== 'sticky') { return; }
+		/* da scorsi il menu si stringe: la misura buona e' quella in cima.
+		   Se la pagina apre gia' scorsa restano i valori del CSS, giusti. */
+		if ((window.pageYOffset || document.documentElement.scrollTop || 0) > 4) { return; }
+		var h = Math.round(n.getBoundingClientRect().height);
+		if (h > 0) { scatola.style.setProperty('--nav', h + 'px'); }
+	}
+
+	/* la scheda delle spedizioni resta in pagina anche quando e' vuota:
+	   senza questo si vedrebbe un riquadro bianco senza niente dentro */
+	function nascondiVuote() {
+		scatola.querySelectorAll('.woocommerce-shipping-fields,'
+			+ ' .woocommerce-additional-fields').forEach(function (d) {
+			if (!d.querySelector('.form-row')) { d.style.display = 'none'; }
+		});
+	}
+
+	/* toglie dagli avvisi i pulsanti che rimandano alla pagina in cui sei
+	   gia': confronta gli indirizzi, uno che porta altrove resta */
+	function ripulisciAvvisi() {
+		var qui = window.location.href.split('#')[0].split('?')[0].replace(/\/$/, '');
+		scatola.querySelectorAll('.woocommerce-message .button, .woocommerce-info .button')
+			.forEach(function (b) {
+				if (!b.getAttribute('href')) { return; }
+				if (b.href.split('#')[0].split('?')[0].replace(/\/$/, '') === qui) {
+					b.parentNode.removeChild(b);
+				}
+			});
+	}
+
+	misuraMenu();
+	nascondiVuote();
+	ripulisciAvvisi();
+	window.addEventListener('load', misuraMenu);
+	window.addEventListener('resize', misuraMenu);
+
+	/* dopo ogni ricalcolo dei totali WooCommerce rifa' il riepilogo */
+	if (window.jQuery) {
+		window.jQuery(document.body).on('updated_checkout checkout_error', function () {
+			nascondiVuote();
+			ripulisciAvvisi();
+		});
+	}
+})();
+JS;
+}
+}
