@@ -19,9 +19,12 @@
  *      nella cache di SiteGround: altrove la lingua di un visitatore
  *      resterebbe salvata nella pagina e la vedrebbero anche gli altri.
  *      In italiano non si tocca niente: restano le impostazioni di sempre.
- *   3. PayPal resta nella sua lingua: la lingua passata dal sito PayPal la
- *      segue solo in parte (lo spagnolo si', l'inglese no) e ne usciva un
- *      miscuglio. Meglio i pulsanti sempre come li decide PayPal.
+ *   3. PayPal: nelle pagine in italiano gli si dice esplicitamente di
+ *      parlare italiano (it_IT), dal server in cassa e carrello e dal browser
+ *      ovunque. Senza, PayPal puo' restare nella lingua che si e' ricordato
+ *      nel browser (per esempio lo spagnolo di una prova precedente). Nelle
+ *      altre lingue decide PayPal: la lingua passata dal sito la segue solo
+ *      in parte (lo spagnolo si', l'inglese no) e ne usciva un miscuglio.
  *   4. "Paga in 3 rate" di PayPal e' un'offerta solo per chi e' in Italia:
  *      in inglese, francese, tedesco e spagnolo non compare.
  *        - In cassa e carrello lo spegne il server con l'aggancio ufficiale
@@ -47,22 +50,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * La lingua scelta dal visitatore, o niente se non c'e' da cambiare:
- * italiano, pagina che va in cache, plugin delle lingue spento.
+ * La lingua della pagina come la sa il server: dal cookie, e italiano se il
+ * cookie non c'e' (e' la lingua del sito). Niente nelle pagine che vanno in
+ * cache e dove il plugin delle lingue e' spento: li' il server non decide.
  */
-if ( ! function_exists( 'tdt_lingua_pagamenti_sigla' ) ) {
-function tdt_lingua_pagamenti_sigla() {
-	if ( empty( $_COOKIE['tdt_lang'] ) || ! is_string( $_COOKIE['tdt_lang'] ) ) {
-		return '';
-	}
+if ( ! function_exists( 'tdt_lingua_pagamenti_lingua' ) ) {
+function tdt_lingua_pagamenti_lingua() {
 	if ( ! function_exists( 'tdt_lingue_attivo_qui' ) || ! tdt_lingue_attivo_qui() ) {
 		return '';
 	}
 	if ( ! function_exists( 'is_checkout' ) || ! ( is_checkout() || is_cart() || is_account_page() ) ) {
 		return '';
 	}
-	$sigla = sanitize_key( wp_unslash( $_COOKIE['tdt_lang'] ) );
-	return in_array( $sigla, array( 'en', 'fr', 'de', 'es' ), true ) ? $sigla : '';
+	$sigla = ( isset( $_COOKIE['tdt_lang'] ) && is_string( $_COOKIE['tdt_lang'] ) )
+		? sanitize_key( wp_unslash( $_COOKIE['tdt_lang'] ) )
+		: 'it';
+	return in_array( $sigla, array( 'it', 'en', 'fr', 'de', 'es' ), true ) ? $sigla : 'it';
+}
+}
+
+/** La lingua scelta se non e' l'italiano, o niente: e' quando c'e' da cambiare. */
+if ( ! function_exists( 'tdt_lingua_pagamenti_sigla' ) ) {
+function tdt_lingua_pagamenti_sigla() {
+	$lingua = tdt_lingua_pagamenti_lingua();
+	return ( '' !== $lingua && 'it' !== $lingua ) ? $lingua : '';
 }
 }
 
@@ -94,6 +105,14 @@ function tdt_lingua_pagamenti_rate_paypal( $spento ) {
 }
 }
 add_filter( 'woocommerce_paypal_payments_buttons_paylater_disabled', 'tdt_lingua_pagamenti_rate_paypal', 20 );
+
+/** PayPal in italiano nelle pagine in italiano (in cassa e carrello, dal server). */
+if ( ! function_exists( 'tdt_lingua_pagamenti_paypal_italiano' ) ) {
+function tdt_lingua_pagamenti_paypal_italiano( $locale ) {
+	return 'it' === tdt_lingua_pagamenti_lingua() ? 'it_IT' : $locale;
+}
+}
+add_filter( 'woocommerce_paypal_payments_smart_buttons_locale', 'tdt_lingua_pagamenti_paypal_italiano', 20 );
 
 /**
  * Lo script che ricorda la lingua nel cookie. Va in tutte le pagine tradotte:
@@ -157,11 +176,27 @@ function tdt_lingua_pagamenti_paypal_js() {
 	/* la lingua con cui si e' aperta la pagina, decisa da TDT Lingue */
 	var sigla = window.TDT_LINGUE_INIZIALE;
 	var G = window.PayPalCommerceGateway;
-	if (!G || !G.url_params || !sigla || sigla === 'it') { return; }
+	if (!G || !G.url_params || !sigla) { return; }
+
+	/* nell'indirizzo si tocca solo il valore che serve: il resto resta com'e' */
+	function imposta(url, nome, valore) {
+		var re = new RegExp('([?&])' + nome + '=[^&#]*(&?)');
+		url = url.replace(re, function (tutto, prima, dopo) { return dopo ? prima : ''; });
+		return valore ? url + (url.indexOf('?') > -1 ? '&' : '?') + nome + '=' + valore : url;
+	}
+
+	/* pagina in italiano: PayPal in italiano, anche se nel browser si e'
+	   ricordato un'altra lingua. "Paga in 3 rate" resta come impostato. */
+	if (sigla === 'it') {
+		G.url_params.locale = 'it_IT';
+		if (typeof G.url === 'string') { G.url = imposta(G.url, 'locale', 'it_IT'); }
+		return;
+	}
+
 	/* "Paga in 3 rate" e' solo per chi e' in Italia: nelle altre lingue il
 	   pulsante si spegne come fa PayPal stesso quando lo si toglie dalle
 	   impostazioni, cioe' spostando "paylater" dai metodi accesi a quelli
-	   spenti. La lingua dei pulsanti resta quella di PayPal. */
+	   spenti. La lingua dei pulsanti la decide PayPal. */
 	var P = G.url_params;
 	function lista(valore) {
 		return typeof valore === 'string' && valore ? valore.split(',') : [];
@@ -172,12 +207,7 @@ function tdt_lingua_pagamenti_paypal_js() {
 	if (accesi.length) { P['enable-funding'] = accesi.join(','); } else { delete P['enable-funding']; }
 	P['disable-funding'] = spenti.join(',');
 
-	/* lo stesso nell'indirizzo, toccando solo questi due valori */
-	function imposta(url, nome, valore) {
-		var re = new RegExp('([?&])' + nome + '=[^&#]*(&?)');
-		url = url.replace(re, function (tutto, prima, dopo) { return dopo ? prima : ''; });
-		return valore ? url + (url.indexOf('?') > -1 ? '&' : '?') + nome + '=' + valore : url;
-	}
+	/* lo stesso nell'indirizzo */
 	if (typeof G.url === 'string') {
 		var url = imposta(G.url, 'enable-funding', P['enable-funding'] || '');
 		G.url = imposta(url, 'disable-funding', P['disable-funding']);
