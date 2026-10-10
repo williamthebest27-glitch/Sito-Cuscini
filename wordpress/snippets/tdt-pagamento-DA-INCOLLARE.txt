@@ -13,13 +13,10 @@
  * il resto e' vestito. Disattivando il frammento la cassa torna quella di
  * prima, intera.
  *
- * LINGUE: i testi del frammento (titolo, passi, garanzie, ritorno al
- * carrello) sono scritti qui dentro in italiano, inglese, francese, tedesco,
- * spagnolo, olandese e polacco: vedi tdt_pagamento_traduzioni. Quello giusto
- * si sceglie da solo, chiedendo la lingua della pagina al plugin di
- * traduzione (WPML, Polylang, TranslatePress, Weglot) o, se non ce n-e'
- * nessuno, a WordPress. Le scritte di WooCommerce (i campi, "Il tuo
- * ordine", il pulsante di conferma) le traduce WooCommerce, come prima.
+ * LINGUE: i testi qui restano in italiano. Li traduce nel browser il plugin
+ * TDT Lingue, che cerca ogni frase italiana nel suo dizionario: se cambi un
+ * testo qui, aggiungi la sua traduzione in Impostazioni > TDT Lingue >
+ * Traduzioni aggiunte, se no in inglese resta in italiano.
  *
  * Dove si incolla: Frammenti di codice (Code Snippets), frammento PHP,
  * esecuzione "ovunque". Si carica da solo solo sulla pagina della cassa.
@@ -44,17 +41,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * I testi, lingua per lingua: cambia qui, non nel codice qui sotto.
- * Per aggiungere una lingua copia un blocco e cambia la sigla (due lettere
- * minuscole, come "pt" o "sv"). Se a una lingua manca una frase, al suo
- * posto esce quella italiana.
+ * Indirizzi e testi: cambia qui, non nel codice qui sotto.
  */
-if ( ! function_exists( 'tdt_pagamento_traduzioni' ) ) {
-function tdt_pagamento_traduzioni() {
+if ( ! function_exists( 'tdt_pagamento_config' ) ) {
+function tdt_pagamento_config() {
+	$carrello = '';
+	if ( function_exists( 'wc_get_cart_url' ) ) {
+		$carrello = wc_get_cart_url();
+	}
+	if ( ! $carrello ) {
+		$carrello = home_url( '/carrello/' );
+	}
+
 	return apply_filters(
-		'tdt_pagamento_traduzioni',
+		'tdt_pagamento_config',
 		array(
-			'it' => array(
+			'carrello' => $carrello,
+			'testi'    => array(
 				'occhiello' => 'Pagamento',
 				'titolo'    => 'Completa l’ordine',
 				'passi'     => array( 'Carrello', 'Pagamento', 'Conferma' ),
@@ -66,212 +69,8 @@ function tdt_pagamento_traduzioni() {
 					'Pagamenti sicuri, dati cifrati',
 				),
 			),
-			'en' => array(
-				'occhiello' => 'Checkout',
-				'titolo'    => 'Complete your order',
-				'passi'     => array( 'Cart', 'Checkout', 'Confirmation' ),
-				'indietro'  => 'Back to cart',
-				'sicuro'    => 'Secure connection',
-				'garanzie'  => array(
-					'Shipping in 2-4 business days',
-					'Returns within 14 days',
-					'Secure payments, encrypted data',
-				),
-			),
-			'fr' => array(
-				'occhiello' => 'Paiement',
-				'titolo'    => 'Finalisez votre commande',
-				'passi'     => array( 'Panier', 'Paiement', 'Confirmation' ),
-				'indietro'  => 'Retour au panier',
-				'sicuro'    => 'Connexion sécurisée',
-				'garanzie'  => array(
-					'Expédition sous 2 à 4 jours ouvrés',
-					'Retours sous 14 jours',
-					'Paiements sécurisés, données chiffrées',
-				),
-			),
-			'de' => array(
-				'occhiello' => 'Kasse',
-				'titolo'    => 'Bestellung abschließen',
-				'passi'     => array( 'Warenkorb', 'Kasse', 'Bestätigung' ),
-				'indietro'  => 'Zurück zum Warenkorb',
-				'sicuro'    => 'Sichere Verbindung',
-				'garanzie'  => array(
-					'Versand in 2-4 Werktagen',
-					'Rückgabe innerhalb von 14 Tagen',
-					'Sichere Zahlung, verschlüsselte Daten',
-				),
-			),
-			'es' => array(
-				'occhiello' => 'Pago',
-				'titolo'    => 'Completa tu pedido',
-				'passi'     => array( 'Carrito', 'Pago', 'Confirmación' ),
-				'indietro'  => 'Volver al carrito',
-				'sicuro'    => 'Conexión segura',
-				'garanzie'  => array(
-					'Envío en 2-4 días laborables',
-					'Devoluciones en 14 días',
-					'Pagos seguros, datos cifrados',
-				),
-			),
-			'nl' => array(
-				'occhiello' => 'Afrekenen',
-				'titolo'    => 'Rond je bestelling af',
-				'passi'     => array( 'Winkelwagen', 'Afrekenen', 'Bevestiging' ),
-				'indietro'  => 'Terug naar winkelwagen',
-				'sicuro'    => 'Beveiligde verbinding',
-				'garanzie'  => array(
-					'Verzending binnen 2-4 werkdagen',
-					'Retourneren binnen 14 dagen',
-					'Veilig betalen, versleutelde gegevens',
-				),
-			),
-			'pl' => array(
-				'occhiello' => 'Płatność',
-				'titolo'    => 'Dokończ zamówienie',
-				'passi'     => array( 'Koszyk', 'Płatność', 'Potwierdzenie' ),
-				'indietro'  => 'Wróć do koszyka',
-				'sicuro'    => 'Bezpieczne połączenie',
-				'garanzie'  => array(
-					'Wysyłka w 2-4 dni robocze',
-					'Zwrot w ciągu 14 dni',
-					'Bezpieczne płatności, szyfrowane dane',
-				),
-			),
 		)
 	);
-}
-}
-
-/**
- * Da "en_US", "pt-br", "de_DE_formal" tiene le prime lettere: "en", "pt",
- * "de". Quello che non sembra una lingua torna vuoto.
- */
-if ( ! function_exists( 'tdt_pagamento_sigla' ) ) {
-function tdt_pagamento_sigla( $codice ) {
-	if ( is_object( $codice ) && method_exists( $codice, 'getInternalCode' ) ) {
-		$codice = $codice->getInternalCode();
-	}
-	if ( ! is_string( $codice ) ) {
-		return '';
-	}
-	$parti = preg_split( '/[-_]/', strtolower( trim( $codice ) ) );
-	$sigla = $parti[0];
-	/* WPML in certi momenti risponde "all": non e' una lingua */
-	if ( 'all' === $sigla || ! preg_match( '/^[a-z]{2,3}$/', $sigla ) ) {
-		return '';
-	}
-	return $sigla;
-}
-}
-
-/**
- * La lingua della pagina. Prima la chiede al plugin di traduzione, se ce
- * n-e' uno, poi a WordPress. 'plugin' dice se la risposta l-ha data un
- * plugin di traduzione: serve a tdt_pagamento_attributi.
- */
-if ( ! function_exists( 'tdt_pagamento_lingua' ) ) {
-function tdt_pagamento_lingua() {
-	$risposte = array();
-
-	/* WPML (anche Polylang risponde a questa domanda) */
-	$risposte[] = apply_filters( 'wpml_current_language', null );
-	/* Polylang */
-	if ( function_exists( 'pll_current_language' ) ) {
-		$risposte[] = pll_current_language( 'slug' );
-	}
-	/* TranslatePress la tiene in una variabile, nella forma "en_US" */
-	if ( ! empty( $GLOBALS['TRP_LANGUAGE'] ) ) {
-		$risposte[] = $GLOBALS['TRP_LANGUAGE'];
-	}
-	/* Weglot: protetto, se non e' pronto non deve fermare la cassa */
-	if ( function_exists( 'weglot_get_current_language' ) ) {
-		try {
-			$risposte[] = weglot_get_current_language();
-		} catch ( \Throwable $e ) {
-			unset( $e );
-		}
-	}
-
-	$lingua = array( 'sigla' => '', 'plugin' => false );
-	foreach ( $risposte as $codice ) {
-		$sigla = tdt_pagamento_sigla( $codice );
-		if ( $sigla ) {
-			$lingua = array( 'sigla' => $sigla, 'plugin' => true );
-			break;
-		}
-	}
-	if ( ! $lingua['sigla'] ) {
-		$lingua['sigla'] = tdt_pagamento_sigla( get_locale() );
-	}
-
-	return apply_filters( 'tdt_pagamento_lingua', $lingua );
-}
-}
-
-/**
- * Indirizzi e testi gia' nella lingua della pagina. I testi si cambiano in
- * tdt_pagamento_traduzioni, qui sopra.
- */
-if ( ! function_exists( 'tdt_pagamento_config' ) ) {
-function tdt_pagamento_config() {
-	$lingua = tdt_pagamento_lingua();
-	$tutte  = tdt_pagamento_traduzioni();
-
-	/* si parte dall-italiano, cosi' una frase mancante non lascia un buco */
-	$testi    = isset( $tutte['it'] ) ? (array) $tutte['it'] : array();
-	$tradotto = isset( $tutte[ $lingua['sigla'] ] );
-	if ( $tradotto ) {
-		$testi = array_merge( $testi, (array) $tutte[ $lingua['sigla'] ] );
-	}
-
-	$carrello = '';
-	if ( function_exists( 'wc_get_cart_url' ) ) {
-		$carrello = wc_get_cart_url();
-	}
-	/* il carrello nella lingua della pagina. TranslatePress e Weglot
-	   correggono da soli i link sulla pagina finita; Polylang e WPML no */
-	if ( function_exists( 'pll_get_post' ) && function_exists( 'wc_get_page_id' ) ) {
-		$id = pll_get_post( wc_get_page_id( 'cart' ) );
-		if ( $id && get_permalink( $id ) ) {
-			$carrello = get_permalink( $id );
-		}
-	}
-	if ( $carrello && defined( 'ICL_SITEPRESS_VERSION' ) ) {
-		$carrello = apply_filters( 'wpml_permalink', $carrello, null );
-	}
-	if ( ! $carrello ) {
-		$carrello = home_url( '/carrello/' );
-	}
-
-	return apply_filters(
-		'tdt_pagamento_config',
-		array(
-			'carrello'     => $carrello,
-			'lingua'       => $tradotto ? $lingua['sigla'] : 'it',
-			/* i testi escono gia' tradotti: i plugin che traducono la pagina
-			   finita non devono ritradurli */
-			'non_tradurre' => $tradotto && $lingua['plugin'],
-			'testi'        => $testi,
-		)
-	);
-}
-}
-
-/**
- * Classe e attributi per gli elementi con i testi di questo frammento.
- * Quando i testi escono gia' tradotti da qui, dicono a TranslatePress,
- * Weglot e Google Traduttore di lasciarli stare. Quando la lingua non e'
- * tra quelle scritte sopra, o nessun plugin l-ha indicata, il testo esce in
- * italiano senza blocchi, come prima: chi traduce la pagina lo traduce.
- */
-if ( ! function_exists( 'tdt_pagamento_attributi' ) ) {
-function tdt_pagamento_attributi( $classe, $cfg ) {
-	if ( empty( $cfg['non_tradurre'] ) ) {
-		return ' class="' . esc_attr( $classe ) . '"';
-	}
-	return ' class="' . esc_attr( $classe . ' notranslate' ) . '"'
-		. ' translate="no" data-no-translation="" data-wg-notranslate=""';
 }
 }
 
@@ -334,7 +133,7 @@ function tdt_pagamento_intestazione() {
 	$cfg = tdt_pagamento_config();
 	$t   = $cfg['testi'];
 
-	echo '<div' . tdt_pagamento_attributi( 'tdtk__head', $cfg ) . '>';
+	echo '<div class="tdtk__head">';
 	echo '<span class="tdtk__occhiello">' . esc_html( $t['occhiello'] ) . '</span>';
 	echo '<h1 class="tdtk__titolo">' . esc_html( $t['titolo'] ) . '</h1>';
 	echo '<ol class="tdtk__passi">';
@@ -379,7 +178,7 @@ function tdt_pagamento_riepilogo_chiudi() {
 		$spunta = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"'
 			. ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
 			. ' aria-hidden="true"><path d="M3 8.4l3.2 3.2L13 5"/></svg>';
-		echo '<ul' . tdt_pagamento_attributi( 'tdtk-gar', $cfg ) . '>';
+		echo '<ul class="tdtk-gar">';
 		foreach ( $gar as $voce ) {
 			echo '<li>' . $spunta . esc_html( $voce ) . '</li>';
 		}
@@ -391,9 +190,7 @@ function tdt_pagamento_riepilogo_chiudi() {
 add_action( 'woocommerce_checkout_after_order_review', 'tdt_pagamento_riepilogo_chiudi' );
 
 /**
- * Il ritorno al carrello, sotto la colonna dei dati. Il blocco della
- * traduzione sta sulla scritta, non sul link: cosi' TranslatePress e Weglot
- * possono ancora portare il link al carrello nella lingua giusta.
+ * Il ritorno al carrello, sotto la colonna dei dati.
  */
 if ( ! function_exists( 'tdt_pagamento_indietro' ) ) {
 function tdt_pagamento_indietro() {
@@ -404,8 +201,7 @@ function tdt_pagamento_indietro() {
 	echo '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"'
 		. ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
 		. '<path d="M13 8H3M7 4L3 8l4 4"/></svg>';
-	echo '<span' . tdt_pagamento_attributi( 'tdtk-indietro__testo', $cfg ) . '>'
-		. esc_html( $t['indietro'] ) . '</span></a></div>';
+	echo esc_html( $t['indietro'] ) . '</a></div>';
 }
 }
 add_action( 'woocommerce_checkout_after_customer_details', 'tdt_pagamento_indietro' );

@@ -1,0 +1,218 @@
+{
+ "Completa l’ordine": {
+  "en": "Complete your order",
+  "fr": "Finalisez votre commande",
+  "de": "Bestellung abschließen",
+  "es": "Completa tu pedido"
+ },
+ "Conferma": {
+  "en": "Confirmation",
+  "fr": "Confirmation",
+  "de": "Bestätigung",
+  "es": "Confirmación"
+ },
+ "Torna al carrello": {
+  "en": "Back to cart",
+  "fr": "Retour au panier",
+  "de": "Zurück zum Warenkorb",
+  "es": "Volver al carrito"
+ },
+ "Spedizione in 2-4 giorni lavorativi": {
+  "en": "Shipping in 2-4 business days",
+  "fr": "Expédition sous 2 à 4 jours ouvrés",
+  "de": "Versand in 2-4 Werktagen",
+  "es": "Envío en 2-4 días laborables"
+ },
+ "Reso entro 14 giorni": {
+  "en": "Returns within 14 days",
+  "fr": "Retour sous 14 jours",
+  "de": "Rückgabe innerhalb von 14 Tagen",
+  "es": "Devolución en 14 días"
+ },
+ "Pagamenti sicuri, dati cifrati": {
+  "en": "Secure payments, encrypted data",
+  "fr": "Paiements sécurisés, données chiffrées",
+  "de": "Sichere Zahlung, verschlüsselte Daten",
+  "es": "Pagos seguros, datos cifrados"
+ },
+ "Connessione protetta": {
+  "en": "Secure connection",
+  "fr": "Connexion sécurisée",
+  "de": "Sichere Verbindung",
+  "es": "Conexión segura"
+ },
+ "Il tuo carrello": {
+  "en": "Your cart",
+  "fr": "Votre panier",
+  "de": "Dein Warenkorb",
+  "es": "Tu carrito"
+ },
+ "{n} articolo": {
+  "en": "{n} item",
+  "fr": "{n} article",
+  "de": "{n} Artikel",
+  "es": "{n} artículo"
+ },
+ "{n} articoli": {
+  "en": "{n} items",
+  "fr": "{n} articles",
+  "de": "{n} Artikel",
+  "es": "{n} artículos"
+ },
+ "Riepilogo": {
+  "en": "Summary",
+  "fr": "Récapitulatif",
+  "de": "Übersicht",
+  "es": "Resumen"
+ },
+ "Hai un codice sconto?": {
+  "en": "Have a discount code?",
+  "fr": "Vous avez un code de réduction ?",
+  "de": "Hast du einen Rabattcode?",
+  "es": "¿Tienes un código de descuento?"
+ },
+ "Continua gli acquisti": {
+  "en": "Continue shopping",
+  "fr": "Continuer vos achats",
+  "de": "Weiter einkaufen",
+  "es": "Seguir comprando"
+ },
+ "Torna al negozio": {
+  "en": "Back to shop",
+  "fr": "Retour à la boutique",
+  "de": "Zurück zum Shop",
+  "es": "Volver a la tienda"
+ },
+ "Il carrello è vuoto": {
+  "en": "Your cart is empty",
+  "fr": "Votre panier est vide",
+  "de": "Dein Warenkorb ist leer",
+  "es": "Tu carrito está vacío"
+ },
+ "Non hai ancora scelto nulla. I nostri cuscini ti aspettano.": {
+  "en": "You haven't chosen anything yet. Our pillows are waiting for you.",
+  "fr": "Vous n'avez encore rien choisi. Nos oreillers vous attendent.",
+  "de": "Du hast noch nichts ausgewählt. Unsere Kissen warten auf dich.",
+  "es": "Todavía no has elegido nada. Nuestras almohadas te esperan."
+ },
+ "Rimuovi": {
+  "en": "Remove",
+  "fr": "Supprimer",
+  "de": "Entfernen",
+  "es": "Eliminar"
+ },
+ "Togli uno": {
+  "en": "Remove one",
+  "fr": "Retirer un",
+  "de": "Eins weniger",
+  "es": "Quitar uno"
+ },
+ "Aggiungi uno": {
+  "en": "Add one",
+  "fr": "Ajouter un",
+  "de": "Eins mehr",
+  "es": "Añadir uno"
+ },
+ "cad.": {
+  "en": "each",
+  "fr": "l'unité",
+  "de": "pro Stück",
+  "es": "c/u"
+ },
+ "Pagamenti sicuri": {
+  "en": "Secure payments",
+  "fr": "Paiements sécurisés",
+  "de": "Sichere Zahlung",
+  "es": "Pagos seguros"
+ },
+ "Offerte quantità": {
+  "en": "Volume discounts",
+  "fr": "Remises sur quantité",
+  "de": "Mengenrabatte",
+  "es": "Descuentos por cantidad"
+ },
+ "Acquista di più, risparmia di più": {
+  "en": "Buy more, save more",
+  "fr": "Achetez plus, économisez plus",
+  "de": "Mehr kaufen, mehr sparen",
+  "es": "Compra más, ahorra más"
+ },
+ "Anche modelli diversi: conta il totale dei pezzi": {
+  "en": "Mix and match models: the total number of pieces counts",
+  "fr": "Même avec des modèles différents : c'est le total des pièces qui compte",
+  "de": "Auch verschiedene Modelle: Es zählt die Gesamtzahl der Stücke",
+  "es": "También con modelos distintos: cuenta el total de piezas"
+ },
+ "{n} pezzi": {
+  "en": "{n} pieces",
+  "fr": "{n} pièces",
+  "de": "{n} Stück",
+  "es": "{n} piezas"
+ },
+ "Metti {n} pezzi nel carrello e ottieni il {n}% di sconto": {
+  "en": "Add {n} pieces to the cart and get {n}% off",
+  "fr": "Ajoutez {n} pièces au panier et obtenez {n} % de réduction",
+  "de": "Lege {n} Stück in den Warenkorb und erhalte {n} % Rabatt",
+  "es": "Añade {n} piezas al carrito y obtén un {n} % de descuento"
+ },
+ "✓ Hai ottenuto il {n}% di sconto": {
+  "en": "✓ You got {n}% off",
+  "fr": "✓ Vous bénéficiez de {n} % de réduction",
+  "de": "✓ Du erhältst {n} % Rabatt",
+  "es": "✓ Has conseguido un {n} % de descuento"
+ },
+ "✓ Hai ottenuto il massimo sconto del {n}%": {
+  "en": "✓ You got the maximum discount of {n}%",
+  "fr": "✓ Vous bénéficiez de la remise maximale de {n} %",
+  "de": "✓ Du erhältst den Höchstrabatt von {n} %",
+  "es": "✓ Has conseguido el descuento máximo del {n} %"
+ },
+ "Con {n} pezzi ottieni il {n}% di sconto": {
+  "en": "With {n} pieces you get {n}% off",
+  "fr": "Avec {n} pièces, vous obtenez {n} % de réduction",
+  "de": "Mit {n} Stück erhältst du {n} % Rabatt",
+  "es": "Con {n} piezas obtienes un {n} % de descuento"
+ },
+ "Con 1 pezzo ottieni il {n}% di sconto": {
+  "en": "With 1 piece you get {n}% off",
+  "fr": "Avec 1 pièce, vous obtenez {n} % de réduction",
+  "de": "Mit 1 Stück erhältst du {n} % Rabatt",
+  "es": "Con 1 pieza obtienes un {n} % de descuento"
+ },
+ "nel carrello hai già {n} pezzi": {
+  "en": "you already have {n} pieces in your cart",
+  "fr": "vous avez déjà {n} pièces dans votre panier",
+  "de": "du hast bereits {n} Stück im Warenkorb",
+  "es": "ya tienes {n} piezas en el carrito"
+ },
+ "nel carrello hai già 1 pezzo": {
+  "en": "you already have 1 piece in your cart",
+  "fr": "vous avez déjà 1 pièce dans votre panier",
+  "de": "du hast bereits 1 Stück im Warenkorb",
+  "es": "ya tienes 1 pieza en el carrito"
+ },
+ "Scopri le nostre condizioni dedicate B2B →": {
+  "en": "Discover our dedicated B2B terms →",
+  "fr": "Découvrez nos conditions B2B dédiées →",
+  "de": "Entdecke unsere B2B-Konditionen →",
+  "es": "Descubre nuestras condiciones B2B →"
+ },
+ "Sconto quantità": {
+  "en": "Quantity discount",
+  "fr": "Remise quantité",
+  "de": "Mengenrabatt",
+  "es": "Descuento por cantidad"
+ },
+ "Risparmio quantità": {
+  "en": "Quantity savings",
+  "fr": "Économie sur quantité",
+  "de": "Mengenersparnis",
+  "es": "Ahorro por cantidad"
+ },
+ "già applicato": {
+  "en": "already applied",
+  "fr": "déjà appliqué",
+  "de": "bereits abgezogen",
+  "es": "ya aplicado"
+ }
+}

@@ -1,0 +1,864 @@
+<?php
+/**
+ * THE DOUBLE TWENTY — Sconti quantità WooCommerce
+ * ---------------------------------------------------------------------------
+ * Sconto automatico in base a QUANTI PEZZI ci sono nel carrello, anche se
+ * sono modelli diversi:
+ *   1 pezzo      -> nessuno sconto
+ *   2 - 3 pezzi  -> -5%
+ *   4 - 9 pezzi  -> -10%
+ *   10 o più     -> -15%
+ *
+ * Un cuscino da allattamento + uno da gravidanza fanno 2 pezzi: -5% su tutti
+ * e due. Per tornare al conteggio per singolo prodotto basta mettere
+ * 'conta' => 'prodotto' nel CONFIG qui sotto.
+ *
+ * Niente coupon, niente plugin esterni, niente file esterni: CSS e JavaScript
+ * sono dentro questo file.
+ *
+ * Lo sconto viene applicato sul PREZZO DI RIGA (woocommerce_before_calculate_totals),
+ * non con una fee negativa: l'IVA resta corretta anche con aliquote diverse in
+ * carrello e le soglie restano separate per prodotto. Il prezzo del prodotto a
+ * catalogo non viene mai modificato.
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+if ( class_exists( 'WooCommerce' ) && ! function_exists( 'tdt_qd_config' ) ) {
+
+	/* =====================================================================
+	 * 1 · CONFIGURAZIONE — è l'unico blocco da toccare
+	 * ===================================================================== */
+	function tdt_qd_config() {
+		static $config = null;
+		if ( null !== $config ) {
+			return $config;
+		}
+
+		$config = array(
+
+			/* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			 *  IL LINK DELLA PAGINA B2B SI CAMBIA QUI, E SOLO QUI.
+			 *  Mettici l'indirizzo della tua pagina B2B / contatti.
+			 * <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
+			'b2b_url' => 'https://thedoubletwenty.it/forniture-cuscini-b2b/',
+
+			/* Come si contano i pezzi per arrivare alle soglie:
+			 *   'carrello' -> si sommano TUTTI i cuscini del carrello, anche
+			 *                 di modelli diversi (1 allattamento + 1 gravidanza
+			 *                 = 2 pezzi -> -5% su tutti e due);
+			 *   'prodotto' -> come prima: contano solo i pezzi dello stesso
+			 *                 prodotto, ogni prodotto per conto suo.          */
+			'conta' => 'carrello',
+
+			/* Le soglie. Si possono aggiungere o togliere righe: il box del
+			 * prodotto, i messaggi e il calcolo si adattano da soli. */
+			'tiers' => array(
+				array( 'qty' => 2,  'percent' => 5,  'icon' => '🛍️' ),
+				array( 'qty' => 4,  'percent' => 10, 'icon' => '📦' ),
+				array( 'qty' => 10, 'percent' => 15, 'icon' => '📦' ),
+			),
+
+			/* Vale solo con 'conta' => 'prodotto' (con 'carrello' si somma
+			 * comunque tutto).
+			 * false = ogni variante fa gruppo a sé (3 rosa + 3 blu NON fanno 6).
+			 * true  = le varianti dello stesso prodotto si sommano.          */
+			'group_variations_by_parent' => false,
+
+			/* ID di prodotti da escludere dagli sconti (anche ID padre). */
+			'exclude_ids' => array(),
+
+			/* true = i prodotti già in offerta non ricevono lo sconto quantità. */
+			'exclude_on_sale' => false,
+
+			/* Dove appare il box nella pagina prodotto. In alternativa:
+			 * 'woocommerce_after_add_to_cart_button'  (sotto al pulsante)
+			 * 'woocommerce_before_add_to_cart_form'   (sopra tutto il modulo) */
+			'hook'          => 'woocommerce_before_add_to_cart_button',
+			'hook_priority' => 15,
+
+			/* I testi. Restano in italiano: li traduce nel browser il plugin
+			 * TDT Lingue, che cerca ogni frase italiana nel suo dizionario.
+			 * Se cambi un testo qui, aggiungi la sua traduzione in
+			 * Impostazioni > TDT Lingue > Traduzioni aggiunte, scrivendo i
+			 * numeri come {n} (es. "Con {n} pezzi ottieni il {n}% di sconto"). */
+			'testi' => array(
+				'titolo'    => 'Offerte quantità',
+				'sottotit'  => 'Acquista di più, risparmia di più',
+				/* usato quando le soglie contano tutto il carrello */
+				'sottotit2' => 'Anche modelli diversi: conta il totale dei pezzi',
+				'pezzi'     => '%d pezzi',
+				'scegli'    => 'Metti %1$d pezzi nel carrello e ottieni il %2$s%% di sconto',
+				'ok'        => '✓ Hai ottenuto il {p}% di sconto',
+				'max'       => '✓ Hai ottenuto il massimo sconto del {p}%',
+				/* {n} = a quanti pezzi IN TUTTO scatta lo sconto, non quanti ne
+				 * mancano: "Aggiungi 1 pezzo" si leggeva "aggiungi 1 pezzo al
+				 * carrello", e con un pezzo solo lo sconto non c'è. */
+				'uno'       => 'Con 1 pezzo ottieni il {p}% di sconto',
+				'molti'     => 'Con {n} pezzi ottieni il {p}% di sconto',
+				'b2b_testo' => 'Scopri le nostre condizioni dedicate B2B →',
+				'b2b_link'  => 'Contattaci',
+				'carrello'  => 'Sconto quantità',
+				'risparmio' => 'Risparmio quantità',
+				'applicato' => 'già applicato',
+				'gia'       => 'nel carrello hai già {n} pezzi',
+				'gia1'      => 'nel carrello hai già 1 pezzo',
+			),
+		);
+
+		$config = apply_filters( 'tdt_qd_config', $config );
+
+		/* Le soglie devono stare in ordine crescente: il resto del codice ci conta. */
+		usort( $config['tiers'], 'tdt_qd_ordina_tiers' );
+
+		return $config;
+	}
+
+	function tdt_qd_ordina_tiers( $a, $b ) {
+		$qa = isset( $a['qty'] ) ? (int) $a['qty'] : 0;
+		$qb = isset( $b['qty'] ) ? (int) $b['qty'] : 0;
+		return ( $qa === $qb ) ? 0 : ( ( $qa < $qb ) ? -1 : 1 );
+	}
+
+	/* =====================================================================
+	 * 2 · FUNZIONI DI BASE
+	 * ===================================================================== */
+
+	/** Quale percentuale spetta a una certa quantità. */
+	function tdt_qd_percentuale( $quantita ) {
+		$config     = tdt_qd_config();
+		$quantita   = (int) $quantita;
+		$percentuale = 0;
+		foreach ( $config['tiers'] as $tier ) {
+			if ( $quantita >= (int) $tier['qty'] ) {
+				$percentuale = (float) $tier['percent'];
+			}
+		}
+		return $percentuale;
+	}
+
+	/**
+	 * La chiave con cui si sommano le quantità.
+	 * Prodotti diversi non si sommano mai fra loro; le varianti si sommano
+	 * solo se 'group_variations_by_parent' è impostato a true.
+	 */
+	function tdt_qd_chiave_gruppo( $cart_item ) {
+		$config = tdt_qd_config();
+
+		/* Un gruppo solo: tutti i pezzi del carrello si sommano, anche di
+		   modelli diversi. E' il comportamento di serie. */
+		if ( empty( $config['conta'] ) || 'prodotto' !== $config['conta'] ) {
+			return 'carrello';
+		}
+
+		$product_id   = isset( $cart_item['product_id'] ) ? (int) $cart_item['product_id'] : 0;
+		$variation_id = isset( $cart_item['variation_id'] ) ? (int) $cart_item['variation_id'] : 0;
+
+		if ( $variation_id && empty( $config['group_variations_by_parent'] ) ) {
+			return 'v' . $variation_id;
+		}
+		return 'p' . $product_id;
+	}
+
+	/** Il prodotto partecipa agli sconti quantità? */
+	function tdt_qd_ammesso( $product, $cart_item = null ) {
+		if ( ! $product instanceof WC_Product ) {
+			return false;
+		}
+		$config = tdt_qd_config();
+		$id     = (int) $product->get_id();
+		$padre  = (int) $product->get_parent_id();
+
+		if ( ! empty( $config['exclude_ids'] ) ) {
+			$esclusi = array_map( 'intval', (array) $config['exclude_ids'] );
+			if ( in_array( $id, $esclusi, true ) || ( $padre && in_array( $padre, $esclusi, true ) ) ) {
+				return false;
+			}
+		}
+		if ( ! empty( $config['exclude_on_sale'] ) && $product->is_on_sale() ) {
+			return false;
+		}
+		return (bool) apply_filters( 'tdt_qd_ammesso', true, $product, $cart_item );
+	}
+
+	/**
+	 * Quanti pezzi, fra quelli che fanno soglia, ci sono già nel carrello.
+	 * Serve al box della pagina prodotto: con il conteggio sul carrello, i
+	 * pezzi già dentro contano per raggiungere la soglia.
+	 * Con 'conta' => 'prodotto' si contano solo quelli del prodotto aperto.
+	 */
+	function tdt_qd_pezzi_in_carrello( $product = null ) {
+		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+			return 0;
+		}
+		$config      = tdt_qd_config();
+		$solo_questo = ( ! empty( $config['conta'] ) && 'prodotto' === $config['conta'] && $product instanceof WC_Product );
+		$id          = $solo_questo ? (int) $product->get_id() : 0;
+
+		$pezzi = 0;
+		foreach ( WC()->cart->get_cart() as $voce ) {
+			if ( empty( $voce['data'] ) || ! $voce['data'] instanceof WC_Product ) {
+				continue;
+			}
+			if ( ! tdt_qd_ammesso( $voce['data'], $voce ) ) {
+				continue;
+			}
+			if ( $solo_questo ) {
+				$pid = isset( $voce['product_id'] ) ? (int) $voce['product_id'] : 0;
+				$vid = isset( $voce['variation_id'] ) ? (int) $voce['variation_id'] : 0;
+				if ( $pid !== $id && $vid !== $id ) {
+					continue;
+				}
+			}
+			$pezzi += (int) $voce['quantity'];
+		}
+		return $pezzi;
+	}
+
+	/* =====================================================================
+	 * 3 · IL CUORE — lo sconto applicato al carrello
+	 * ===================================================================== */
+	add_action( 'woocommerce_before_calculate_totals', 'tdt_qd_applica_sconti', 20, 1 );
+
+	function tdt_qd_applica_sconti( $cart ) {
+
+		/* Mai nel backend, salvo le chiamate AJAX/REST che aggiornano il carrello. */
+		if ( is_admin() && ! wp_doing_ajax() && ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+		if ( ! $cart instanceof WC_Cart ) {
+			return;
+		}
+
+		$voci = $cart->get_cart();
+		if ( empty( $voci ) ) {
+			return;
+		}
+
+		/**
+		 * Prezzi originali, catturati alla PRIMA passata di questa richiesta.
+		 * woocommerce_before_calculate_totals può scattare più volte: partendo
+		 * sempre da qui, lo sconto non si somma mai a se stesso.
+		 */
+		static $originali = array();
+
+		/* --- passata 1: quante unità per ogni gruppo ---------------------- */
+		$quantita = array();
+		foreach ( $voci as $chiave => $voce ) {
+			if ( empty( $voce['data'] ) || ! $voce['data'] instanceof WC_Product ) {
+				continue;
+			}
+			if ( ! tdt_qd_ammesso( $voce['data'], $voce ) ) {
+				continue;
+			}
+			$gruppo = tdt_qd_chiave_gruppo( $voce );
+			if ( ! isset( $quantita[ $gruppo ] ) ) {
+				$quantita[ $gruppo ] = 0;
+			}
+			$quantita[ $gruppo ] += (int) $voce['quantity'];
+		}
+
+		/* --- passata 2: applica il prezzo scontato ------------------------ */
+		foreach ( $voci as $chiave => $voce ) {
+			if ( empty( $voce['data'] ) || ! $voce['data'] instanceof WC_Product ) {
+				continue;
+			}
+			$prodotto = $voce['data'];
+
+			if ( ! isset( $originali[ $chiave ] ) ) {
+				$originali[ $chiave ] = (float) $prodotto->get_price();
+			}
+			$originale = $originali[ $chiave ];
+
+			/* si riparte sempre da zero: niente residui dal giro precedente */
+			unset( $cart->cart_contents[ $chiave ]['tdt_qd'] );
+
+			if ( ! tdt_qd_ammesso( $prodotto, $voce ) ) {
+				$prodotto->set_price( $originale );
+				continue;
+			}
+
+			$gruppo      = tdt_qd_chiave_gruppo( $voce );
+			$qta_gruppo  = isset( $quantita[ $gruppo ] ) ? (int) $quantita[ $gruppo ] : 0;
+			$percentuale = tdt_qd_percentuale( $qta_gruppo );
+
+			if ( $percentuale <= 0 ) {
+				$prodotto->set_price( $originale );
+				continue;
+			}
+
+			$scontato = round( $originale * ( 1 - ( $percentuale / 100 ) ), wc_get_price_decimals() );
+			if ( $scontato < 0 ) {
+				$scontato = 0;
+			}
+
+			$prodotto->set_price( $scontato );
+
+			/* messo in carrello per i filtri di visualizzazione e per l'ordine */
+			$cart->cart_contents[ $chiave ]['tdt_qd'] = array(
+				'percent'   => $percentuale,
+				'original'  => $originale,
+				'price'     => $scontato,
+				'qty_group' => $qta_gruppo,
+			);
+		}
+	}
+
+	/* =====================================================================
+	 * 4 · COME SI VEDE NEL CARRELLO E AL CHECKOUT
+	 * ===================================================================== */
+
+	/** Prezzo unitario: originale barrato + scontato. */
+	add_filter( 'woocommerce_cart_item_price', 'tdt_qd_prezzo_voce', 10, 3 );
+	function tdt_qd_prezzo_voce( $html, $cart_item, $cart_item_key ) {
+		if ( empty( $cart_item['tdt_qd'] ) || empty( $cart_item['data'] ) ) {
+			return $html;
+		}
+		$d        = $cart_item['tdt_qd'];
+		$prodotto = $cart_item['data'];
+		$pieno    = wc_get_price_to_display( $prodotto, array( 'price' => $d['original'], 'qty' => 1 ) );
+		$ridotto  = wc_get_price_to_display( $prodotto, array( 'price' => $d['price'], 'qty' => 1 ) );
+
+		return '<del aria-hidden="true">' . wp_kses_post( wc_price( $pieno ) ) . '</del> '
+			. '<ins style="text-decoration:none;font-weight:600">' . wp_kses_post( wc_price( $ridotto ) ) . '</ins>';
+	}
+
+	/** Totale di riga: originale barrato + scontato. */
+	add_filter( 'woocommerce_cart_item_subtotal', 'tdt_qd_subtotale_voce', 10, 3 );
+	function tdt_qd_subtotale_voce( $html, $cart_item, $cart_item_key ) {
+		if ( empty( $cart_item['tdt_qd'] ) || empty( $cart_item['data'] ) ) {
+			return $html;
+		}
+		$d        = $cart_item['tdt_qd'];
+		$prodotto = $cart_item['data'];
+		$qta      = isset( $cart_item['quantity'] ) ? (int) $cart_item['quantity'] : 1;
+		$pieno    = wc_get_price_to_display( $prodotto, array( 'price' => $d['original'], 'qty' => $qta ) );
+		$ridotto  = wc_get_price_to_display( $prodotto, array( 'price' => $d['price'], 'qty' => $qta ) );
+
+		return '<del aria-hidden="true">' . wp_kses_post( wc_price( $pieno ) ) . '</del> '
+			. '<ins style="text-decoration:none;font-weight:600">' . wp_kses_post( wc_price( $ridotto ) ) . '</ins>';
+	}
+
+	/** Riga "Sconto quantità −10%" sotto al nome del prodotto. */
+	add_filter( 'woocommerce_get_item_data', 'tdt_qd_dati_voce', 10, 2 );
+	function tdt_qd_dati_voce( $item_data, $cart_item ) {
+		if ( empty( $cart_item['tdt_qd'] ) ) {
+			return $item_data;
+		}
+		$config      = tdt_qd_config();
+		$percentuale = (float) $cart_item['tdt_qd']['percent'];
+
+		$item_data[] = array(
+			'key'     => $config['testi']['carrello'],
+			'value'   => '−' . tdt_qd_formatta_percento( $percentuale ) . '%',
+			'display' => '',
+		);
+		return $item_data;
+	}
+
+	function tdt_qd_formatta_percento( $percentuale ) {
+		$percentuale = (float) $percentuale;
+		return ( floor( $percentuale ) == $percentuale )
+			? number_format_i18n( $percentuale, 0 )
+			: number_format_i18n( $percentuale, 2 );
+	}
+
+	/** Quanto ha risparmiato in tutto, alle aliquote di visualizzazione. */
+	function tdt_qd_totale_risparmio() {
+		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+			return 0.0;
+		}
+		$totale = 0.0;
+		foreach ( WC()->cart->get_cart() as $voce ) {
+			if ( empty( $voce['tdt_qd'] ) || empty( $voce['data'] ) ) {
+				continue;
+			}
+			$prodotto = $voce['data'];
+			$qta      = isset( $voce['quantity'] ) ? (int) $voce['quantity'] : 1;
+			$pieno    = wc_get_price_to_display( $prodotto, array( 'price' => $voce['tdt_qd']['original'], 'qty' => $qta ) );
+			$ridotto  = wc_get_price_to_display( $prodotto, array( 'price' => $voce['tdt_qd']['price'], 'qty' => $qta ) );
+			$totale  += ( $pieno - $ridotto );
+		}
+		return $totale;
+	}
+
+	/** Riga di riepilogo nei totali (carrello e checkout). */
+	add_action( 'woocommerce_cart_totals_before_order_total', 'tdt_qd_riga_risparmio' );
+	add_action( 'woocommerce_review_order_before_order_total', 'tdt_qd_riga_risparmio' );
+	function tdt_qd_riga_risparmio() {
+		$risparmio = tdt_qd_totale_risparmio();
+		if ( $risparmio <= 0 ) {
+			return;
+		}
+		$config = tdt_qd_config();
+		$label  = $config['testi']['risparmio'];
+		?>
+		<tr class="tdt-qd-risparmio">
+			<th><?php echo esc_html( $label ); ?></th>
+			<td data-title="<?php echo esc_attr( $label ); ?>">
+				−<?php echo wp_kses_post( wc_price( $risparmio ) ); ?>
+				<small style="display:block;opacity:.6;font-weight:400"><?php echo esc_html( $config['testi']['applicato'] ); ?></small>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/** Lo sconto resta scritto sulla riga d'ordine. */
+	add_action( 'woocommerce_checkout_create_order_line_item', 'tdt_qd_riga_ordine', 10, 4 );
+	function tdt_qd_riga_ordine( $item, $cart_item_key, $values, $order ) {
+		if ( empty( $values['tdt_qd'] ) ) {
+			return;
+		}
+		$config = tdt_qd_config();
+		$d      = $values['tdt_qd'];
+
+		$item->add_meta_data( $config['testi']['carrello'], '−' . tdt_qd_formatta_percento( $d['percent'] ) . '%', true );
+		$item->add_meta_data( '_tdt_qd_percent', (float) $d['percent'], true );
+		$item->add_meta_data( '_tdt_qd_original_price', (float) $d['original'], true );
+	}
+
+	/* =====================================================================
+	 * 5 · IL BOX NELLA PAGINA PRODOTTO
+	 * ===================================================================== */
+	add_action( 'wp', 'tdt_qd_aggancia_box' );
+	function tdt_qd_aggancia_box() {
+		$config = tdt_qd_config();
+		add_action( $config['hook'], 'tdt_qd_stampa_box', (int) $config['hook_priority'] );
+	}
+
+	/**
+	 * Il prodotto della pagina.
+	 * Durante wp_enqueue_scripts il globale $product non è ancora impostato
+	 * (lo mette WooCommerce all'avvio del loop): in quel caso si legge
+	 * direttamente dalla query.
+	 */
+	function tdt_qd_prodotto_corrente() {
+		global $product;
+		if ( $product instanceof WC_Product ) {
+			return $product;
+		}
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			$p = wc_get_product( get_queried_object_id() );
+			if ( $p instanceof WC_Product ) {
+				return $p;
+			}
+		}
+		return null;
+	}
+
+	/** Il box va mostrato su questo prodotto? */
+	function tdt_qd_box_visibile() {
+		if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+			return false;
+		}
+		$product = tdt_qd_prodotto_corrente();
+		if ( ! $product instanceof WC_Product ) {
+			return false;
+		}
+		if ( in_array( $product->get_type(), array( 'external', 'grouped' ), true ) ) {
+			return false;   /* non hanno il campo quantità */
+		}
+		if ( $product->is_sold_individually() ) {
+			return false;   /* venduto uno alla volta: le soglie non si possono raggiungere */
+		}
+		if ( ! $product->is_purchasable() || ! $product->is_in_stock() ) {
+			return false;
+		}
+		if ( ! tdt_qd_ammesso( $product ) ) {
+			return false;
+		}
+		return true;
+	}
+
+	function tdt_qd_stampa_box() {
+		static $gia_stampato = false;
+		if ( $gia_stampato || ! tdt_qd_box_visibile() ) {
+			return;
+		}
+		$gia_stampato = true;
+
+		$config  = tdt_qd_config();
+		$tiers   = $config['tiers'];
+		$testi   = $config['testi'];
+		/* con il conteggio sul carrello lo diciamo subito, sotto al titolo */
+		$sotto = ( ! empty( $config['conta'] ) && 'prodotto' === $config['conta'] )
+			? $testi['sottotit']
+			: ( isset( $testi['sottotit2'] ) ? $testi['sottotit2'] : $testi['sottotit'] );
+		?>
+		<div class="tdt-qd" id="tdt-qd">
+
+			<div class="tdt-qd__head">
+				<span class="tdt-qd__title"><?php echo esc_html( $testi['titolo'] ); ?></span>
+				<span class="tdt-qd__sub"><?php echo esc_html( $sotto ); ?></span>
+			</div>
+
+			<ul class="tdt-qd__tiers">
+				<?php foreach ( $tiers as $i => $tier ) : ?>
+					<li>
+						<button type="button" class="tdt-qd__tier"
+							data-tdt-qd-tier="<?php echo esc_attr( $i ); ?>"
+							data-qty="<?php echo esc_attr( (int) $tier['qty'] ); ?>"
+							aria-pressed="false"
+							aria-label="<?php echo esc_attr( sprintf( $testi['scegli'], (int) $tier['qty'], tdt_qd_formatta_percento( $tier['percent'] ) ) ); ?>">
+							<span class="tdt-qd__icon" aria-hidden="true"><?php echo esc_html( isset( $tier['icon'] ) ? $tier['icon'] : '' ); ?></span>
+							<span class="tdt-qd__qty"><?php echo esc_html( sprintf( $testi['pezzi'], (int) $tier['qty'] ) ); ?></span>
+							<span class="tdt-qd__off">−<?php echo esc_html( tdt_qd_formatta_percento( $tier['percent'] ) ); ?>%</span>
+						</button>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+
+			<p class="tdt-qd__msg" data-tdt-qd-msg aria-live="polite"></p>
+
+			<p class="tdt-qd__b2b">
+				<?php echo esc_html( $testi['b2b_testo'] ); ?>
+				<a href="<?php echo esc_url( $config['b2b_url'] ); ?>"><?php echo esc_html( $testi['b2b_link'] ); ?></a>
+			</p>
+
+		</div>
+		<?php
+	}
+
+	/* =====================================================================
+	 * 6 · CSS E JAVASCRIPT (inclusi qui, nessun file esterno)
+	 * ===================================================================== */
+	add_action( 'wp_enqueue_scripts', 'tdt_qd_assets', 20 );
+	function tdt_qd_assets() {
+		if ( ! tdt_qd_box_visibile() ) {
+			return;
+		}
+		$config = tdt_qd_config();
+
+		wp_register_style( 'tdt-qd', false, array(), null );
+		wp_enqueue_style( 'tdt-qd' );
+		wp_add_inline_style( 'tdt-qd', tdt_qd_css() );
+
+		$dati = array(
+			'tiers'  => array_map(
+				function ( $t ) {
+					return array( 'qty' => (int) $t['qty'], 'percent' => (float) $t['percent'] );
+				},
+				$config['tiers']
+			),
+			'testi' => array(
+				'ok'    => $config['testi']['ok'],
+				'max'   => $config['testi']['max'],
+				'uno'   => $config['testi']['uno'],
+				'molti' => $config['testi']['molti'],
+				'gia'   => isset( $config['testi']['gia'] ) ? $config['testi']['gia'] : '',
+				'gia1'  => isset( $config['testi']['gia1'] ) ? $config['testi']['gia1'] : '',
+			),
+			/* come si contano i pezzi, e quanti ce ne sono già nel carrello */
+			'conta' => ( ! empty( $config['conta'] ) && 'prodotto' === $config['conta'] ) ? 'prodotto' : 'carrello',
+			'gia'   => tdt_qd_pezzi_in_carrello( tdt_qd_prodotto_corrente() ),
+			/* rete di sicurezza quando la pagina arriva dalla cache con dentro
+			   un numero vecchio: il totale vero si chiede al negozio */
+			'store' => function_exists( 'rest_url' ) ? esc_url_raw( rest_url( 'wc/store/v1/cart' ) ) : '',
+		);
+
+		wp_register_script( 'tdt-qd', false, array(), null, true );
+		wp_enqueue_script( 'tdt-qd' );
+		wp_add_inline_script( 'tdt-qd', 'var TDT_QD=' . wp_json_encode( $dati ) . ';', 'before' );
+		wp_add_inline_script( 'tdt-qd', tdt_qd_js() );
+	}
+
+	function tdt_qd_css() {
+		return '
+.tdt-qd{--tdt-line:rgba(17,17,17,.12);--tdt-ink:#111;--tdt-muted:#6b6b6b;--tdt-soft:#f7f7f5;--tdt-ok:#1d7a4c;
+ box-sizing:border-box;display:block;width:100%;max-width:100%;margin:0 0 20px;padding:16px 18px 15px;
+ border:1px solid var(--tdt-line);border-radius:16px;background:#fff;color:var(--tdt-ink);
+ font-size:15px;line-height:1.45;text-align:left;-webkit-font-smoothing:antialiased}
+.tdt-qd *,.tdt-qd *::before,.tdt-qd *::after{box-sizing:border-box}
+.tdt-qd__head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin:0 0 13px}
+.tdt-qd__title{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.tdt-qd__sub{font-size:13px;font-weight:400;color:var(--tdt-muted)}
+.tdt-qd__tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.tdt-qd__tiers li{margin:0;padding:0;list-style:none}
+/* La soglia è un <button>, quindi il tema prova a vestirla come i suoi
+   pulsanti: fondo colorato, maiuscoletto, imbottitura sua. Il selettore è
+   perciò più specifico e le proprietà che i temi toccano di sicuro sono
+   marcate. Il resto resta normale, così si può ancora ritoccare da fuori.
+   ATTENZIONE: questa stringa PHP sta fra apici singoli, qui dentro non si
+   può scrivere un apostrofo. Usare le lettere accentate. */
+.tdt-qd button.tdt-qd__tier{
+ display:flex !important;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+ width:100% !important;min-height:0 !important;
+ margin:0 !important;padding:11px 6px 10px !important;
+ border:1px solid var(--tdt-line) !important;border-radius:12px !important;
+ background:#fff !important;background-image:none !important;
+ color:var(--tdt-ink) !important;
+ font:inherit !important;font-size:inherit !important;font-weight:400 !important;
+ line-height:1.45 !important;letter-spacing:normal !important;text-transform:none !important;
+ text-align:center;text-decoration:none !important;box-shadow:none;
+ cursor:pointer;appearance:none;-webkit-appearance:none;
+ transition:border-color .25s ease,background-color .25s ease,box-shadow .25s ease,transform .25s ease}
+.tdt-qd button.tdt-qd__tier:hover{
+ border-color:rgba(17,17,17,.34) !important;background:#fff !important;
+ color:var(--tdt-ink) !important;transform:translateY(-2px);
+ box-shadow:0 10px 24px -18px rgba(17,17,17,.55)}
+.tdt-qd button.tdt-qd__tier:active{transform:translateY(0)}
+.tdt-qd button.tdt-qd__tier:focus-visible{outline:2px solid var(--tdt-ink);outline-offset:3px}
+.tdt-qd button.tdt-qd__tier.is-active{
+ border-color:var(--tdt-ink) !important;background:var(--tdt-soft) !important;
+ box-shadow:0 8px 22px -16px rgba(17,17,17,.6);transform:translateY(-1px)}
+/* soglia oltre le scorte: resta visibile ma non si può scegliere */
+.tdt-qd button.tdt-qd__tier[disabled]{cursor:not-allowed;opacity:.42}
+.tdt-qd button.tdt-qd__tier[disabled]:hover{
+ transform:none;box-shadow:none;border-color:var(--tdt-line) !important}
+.tdt-qd__icon{font-size:16px;line-height:1.1}
+.tdt-qd__qty{font-size:12.5px;color:var(--tdt-muted);white-space:nowrap}
+.tdt-qd__off{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.tdt-qd__tier.is-active .tdt-qd__qty{color:var(--tdt-ink)}
+.tdt-qd__msg{display:block;margin:13px 0 0;padding:10px 12px;border-radius:10px;background:var(--tdt-soft);
+ font-size:13.5px;line-height:1.4;color:var(--tdt-ink);min-height:1px}
+.tdt-qd__msg.is-ok{background:rgba(29,122,76,.09);color:var(--tdt-ok);font-weight:500}
+.tdt-qd__b2b{margin:13px 0 0;padding:12px 0 0;border-top:1px solid var(--tdt-line);
+ font-size:12.5px;line-height:1.5;color:var(--tdt-muted)}
+.tdt-qd__b2b a{color:var(--tdt-ink);font-weight:500;text-decoration:underline;text-underline-offset:2px}
+.tdt-qd__b2b a:hover{color:var(--tdt-muted)}
+@media (max-width:400px){
+ .tdt-qd{padding:14px 14px 13px;border-radius:14px}
+ .tdt-qd__tiers{gap:6px}
+ .tdt-qd__tier{padding:9px 4px}
+ .tdt-qd__qty{font-size:11.5px}
+ .tdt-qd__off{font-size:14px}
+}
+@media (prefers-reduced-motion:reduce){
+ .tdt-qd__tier{transition:none}
+}
+.tdt-qd-risparmio th,.tdt-qd-risparmio td{font-weight:500}
+';
+	}
+
+	function tdt_qd_js() {
+		return "
+(function(){
+	'use strict';
+	var CFG = window.TDT_QD;
+	if (!CFG || !CFG.tiers || !CFG.tiers.length) { return; }
+
+	function avvia(){
+		var box = document.getElementById('tdt-qd');
+		if (!box || box.getAttribute('data-tdt-pronto')) { return; }
+
+		var form  = box.closest ? box.closest('form.cart') : null;
+		var input = (form || document).querySelector('input.qty');
+		if (!input) { input = document.querySelector('form.cart input.qty'); }
+
+		var msg   = box.querySelector('[data-tdt-qd-msg]');
+		var cards = box.querySelectorAll('[data-tdt-qd-tier]');
+		if (!msg) { return; }
+
+		box.setAttribute('data-tdt-pronto','1');
+
+		var tiers = CFG.tiers, T = CFG.testi, ultimo = tiers.length - 1;
+
+		/* I pezzi gia' nel carrello: con il conteggio sul carrello fanno
+		   soglia insieme a quelli che si stanno per aggiungere. */
+		var gia = parseInt(CFG.gia, 10); if (isNaN(gia) || gia < 0) { gia = 0; }
+		var conta = CFG.conta || 'carrello';
+		function haCarrello(){
+			return /wp_woocommerce_session_|woocommerce_items_in_cart/.test(document.cookie);
+		}
+		/* senza sessione di carrello quel numero viene da una pagina in cache
+		   di qualcun altro: non vale niente */
+		if (gia > 0 && !haCarrello()) { gia = 0; }
+
+		/* Quanti pezzi si possono comprare davvero: il tema mette il limite
+		   sull'input (scorte, vendita singola, multipli). Le soglie oltre il
+		   limite restano visibili ma spente: meglio di un clic che non fa
+		   niente. */
+		function numero(attr, difetto){
+			var v = input ? parseFloat(input.getAttribute(attr)) : NaN;
+			return (isNaN(v) || v <= 0) ? difetto : v;
+		}
+		function valida(q){
+			var min  = numero('min', 1);
+			var step = numero('step', 1);
+			var max  = input ? parseFloat(input.getAttribute('max')) : NaN;
+			if (q < min) { q = min; }
+			if (step > 1) { q = Math.ceil((q - min) / step) * step + min; }
+			if (!isNaN(max) && max > 0 && q > max) { q = max; }
+			return q;
+		}
+		function segnala(el, tipo){
+			var ev;
+			try { ev = new Event(tipo, { bubbles: true }); }
+			catch (e) { ev = document.createEvent('Event'); ev.initEvent(tipo, true, true); }
+			el.dispatchEvent(ev);
+		}
+		function scrivi(q){
+			if (!input) { return; }
+			input.value = valida(q);
+			segnala(input, 'input');
+			segnala(input, 'change');
+			/* i temi che ascoltano solo jQuery */
+			if (window.jQuery) { window.jQuery(input).trigger('change'); }
+			aggiorna();
+		}
+
+		function riempi(testo, pezzi, percento){
+			return String(testo).replace('{n}', pezzi).replace('{p}', percento);
+		}
+
+		/* La soglia che viene dopo si dice con il totale a cui scatta ('Con 2
+		   pezzi ottieni il 5%'), non con quanti pezzi mancano: 'Aggiungi 1
+		   pezzo' si leggeva come 'aggiungi 1 pezzo al carrello', e con un
+		   pezzo solo lo sconto non c'e'. */
+		function soglia(k){
+			return riempi(tiers[k].qty === 1 ? T.uno : T.molti, tiers[k].qty, tiers[k].percent);
+		}
+
+		/* Una soglia si puo' ancora scegliere se i pezzi che mancano stanno
+		   dentro il massimo del campo quantita' (scorte, multipli). */
+		function sistemaSoglie(){
+			var max = input ? parseFloat(input.getAttribute('max')) : NaN;
+			for (var i = 0; i < cards.length; i++) {
+				var q = parseInt(cards[i].getAttribute('data-qty'), 10);
+				var restano = q - gia;
+				if (isNaN(restano) || restano < 1) { restano = 1; }
+				cards[i].disabled = (!isNaN(max) && max > 0 && restano > max);
+			}
+		}
+
+		function scelti(){
+			var q = input ? parseInt(input.value, 10) : 1;
+			return (isNaN(q) || q < 1) ? 1 : q;
+		}
+
+		/* Dopo un'aggiunta il campo quantita' resta com'era, ma quei pezzi
+		   sono gia' nel carrello: contarli un'altra volta faceva dire 'Hai
+		   ottenuto il 5%' con un pezzo solo nel carrello. Percio', finche' il
+		   campo ha ancora il numero di partenza (quello dell'arrivo sulla
+		   pagina o dell'ultima aggiunta), si conta solo il carrello; appena il
+		   cliente cambia la quantita' si torna a carrello + pezzi scelti. */
+		var partenza = scelti();
+
+		/* l'ultimo messaggio scritto, in italiano: quello in pagina puo' essere
+		   gia' stato tradotto, e non va riscritto se non cambia */
+		var scritto = null;
+
+		function aggiorna(){
+			var q = scelti();
+			var totale = (gia > 0 && q === partenza) ? gia : q + gia;
+
+			/* la card accesa e' solo la soglia piu' alta raggiunta */
+			var attiva = -1, i;
+			for (i = 0; i < tiers.length; i++) { if (totale >= tiers[i].qty) { attiva = i; } }
+			for (i = 0; i < cards.length; i++) {
+				if (i === attiva) { cards[i].classList.add('is-active'); }
+				else { cards[i].classList.remove('is-active'); }
+				if (cards[i].setAttribute) {
+					cards[i].setAttribute('aria-pressed', i === attiva ? 'true' : 'false');
+				}
+			}
+
+			/* il messaggio */
+			var esatta = -1, prossima = -1;
+			for (i = 0; i < tiers.length; i++) {
+				if (totale === tiers[i].qty) { esatta = i; }
+				if (prossima === -1 && totale < tiers[i].qty) { prossima = i; }
+			}
+
+			var parti, ok;
+			if (prossima === -1) {
+				parti = [riempi(T.max, 0, tiers[ultimo].percent)]; ok = true;
+			} else if (esatta !== -1) {
+				parti = [riempi(T.ok, 0, tiers[esatta].percent)]; ok = true;
+			} else if (attiva !== -1) {
+				/* sei gia' dentro una soglia: lo diciamo, e diciamo da quanti
+				   pezzi scatta la prossima */
+				parti = [riempi(T.ok, 0, tiers[attiva].percent), soglia(prossima)];
+				ok = true;
+			} else {
+				parti = [soglia(prossima)];
+				ok = false;
+			}
+			if (gia > 0) {
+				parti.push(gia === 1 ? (T.gia1 || riempi(T.gia, 1, '')) : riempi(T.gia, gia, ''));
+			}
+
+			/* Ogni frase in un suo <span>: il plugin delle lingue (TDT Lingue)
+			   cerca nel dizionario una frase alla volta, e le frasi unite con
+			   il punto in mezzo non le troverebbe. */
+			var testo = parti.join(' · ');
+			if (testo !== scritto) {
+				scritto = testo;
+				msg.textContent = '';
+				for (i = 0; i < parti.length; i++) {
+					if (i) { msg.appendChild(document.createTextNode(' · ')); }
+					var frase = document.createElement('span');
+					frase.textContent = parti[i];
+					msg.appendChild(frase);
+				}
+			}
+			if (ok) { msg.classList.add('is-ok'); } else { msg.classList.remove('is-ok'); }
+			sistemaSoglie();
+		}
+
+		/* il clic sulla soglia scrive proprio quel numero di pezzi (al massimo
+		   le scorte), anche se nel carrello ce ne sono gia' altri: 10 pezzi
+		   vuol dire 10 pezzi */
+		for (var c = 0; c < cards.length; c++) {
+			(function(card){
+				card.addEventListener('click', function(){
+					if (card.disabled) { return; }
+					var q = parseInt(card.getAttribute('data-qty'), 10);
+					if (isNaN(q) || q < 1) { q = 1; }
+					scrivi(q);
+				}, false);
+			})(cards[c]);
+		}
+
+		if (input) {
+			['input','change','keyup','blur'].forEach(function(ev){
+				input.addEventListener(ev, aggiorna, false);
+			});
+			/* molti temi cambiano la quantità con jQuery .trigger('change'),
+			   che NON fa scattare gli ascoltatori nativi: qui si recupera. */
+			if (window.jQuery) { window.jQuery(input).on('change input keyup', aggiorna); }
+
+			/* rete di sicurezza per i pulsanti +/- che scrivono il valore
+			   senza emettere alcun evento: confronto leggero ogni 400 ms. */
+			var ultimoValore = input.value;
+			setInterval(function(){
+				if (input.value !== ultimoValore) { ultimoValore = input.value; aggiorna(); }
+			}, 400);
+		}
+
+		/* Il totale vero, chiesto al negozio: serve quando la pagina arriva
+		   dalla cache, o quando si aggiunge al carrello senza ricaricare. */
+		function dalNegozio(){
+			if (conta !== 'carrello' || !CFG.store || !window.fetch) { return; }
+			window.fetch(CFG.store, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+				.then(function(r){ return r.ok ? r.json() : null; })
+				.then(function(j){
+					if (!j || typeof j.items_count !== 'number') { return; }
+					if (j.items_count !== gia) { gia = j.items_count; aggiorna(); }
+				})['catch'](function(){});
+		}
+		if (haCarrello()) { dalNegozio(); }
+		if (window.jQuery) {
+			window.jQuery(document.body).on('added_to_cart removed_from_cart updated_wc_div', function(e){
+				/* i pezzi del campo sono appena entrati nel carrello */
+				if (e && e.type === 'added_to_cart') { partenza = scelti(); }
+				setTimeout(dalNegozio, 300);
+			});
+		}
+
+		aggiorna();
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', avvia);
+	} else {
+		avvia();
+	}
+	/* i temi che ricaricano il modulo via AJAX */
+	if (window.jQuery) {
+		window.jQuery(document.body).on('wc_variation_form updated_wc_div', function(){ setTimeout(avvia, 60); });
+	}
+})();
+";
+	}
+}
