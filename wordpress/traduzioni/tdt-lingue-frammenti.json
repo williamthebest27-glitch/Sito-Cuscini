@@ -754,5 +754,11 @@
   "fr": "du site",
   "de": "der Website",
   "es": "de la web"
+ },
+ "Carta di debito/credito": {
+  "en": "Debit/credit card",
+  "fr": "Carte de débit/crédit",
+  "de": "Debit-/Kreditkarte",
+  "es": "Tarjeta de débito/crédito"
  }
 }
