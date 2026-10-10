@@ -25,6 +25,10 @@
  *      prima che il suo script le legga. Questo vale in ogni pagina, anche
  *      in quelle che vanno nella cache: lo script e' uguale per tutti, la
  *      lingua la legge il browser di chi guarda.
+ *   4. "Paga in 3 rate" di PayPal e' un'offerta solo per chi e' in Italia:
+ *      in inglese, francese, tedesco e spagnolo il messaggio si nasconde e il
+ *      pulsante "Paga in 3 rate" non compare (come quando lo si spegne nelle
+ *      impostazioni di PayPal). In italiano resta tutto com'e'.
  *
  * NON tocca importi, ordini o pagamenti: cambia soltanto la lingua delle
  * scritte dentro i riquadri. Se la lingua si cambia stando gia' nella cassa,
@@ -150,14 +154,51 @@ function tdt_lingua_pagamenti_paypal_js() {
 	var G = window.PayPalCommerceGateway;
 	if (!G || !G.url_params || !codici[sigla]) { return; }
 	G.url_params.locale = codici[sigla];
-	/* nell'indirizzo si tocca solo "locale": il resto resta com'e' */
+	/* "Paga in 3 rate" e' solo per chi e' in Italia: nelle altre lingue il
+	   pulsante si spegne come fa PayPal stesso quando lo si toglie dalle
+	   impostazioni, cioe' spostando "paylater" dai metodi accesi a quelli
+	   spenti */
+	var P = G.url_params;
+	function lista(valore) {
+		return typeof valore === 'string' && valore ? valore.split(',') : [];
+	}
+	var accesi = lista(P['enable-funding']).filter(function (f) { return f !== 'paylater'; });
+	var spenti = lista(P['disable-funding']);
+	if (spenti.indexOf('paylater') < 0) { spenti.push('paylater'); }
+	if (accesi.length) { P['enable-funding'] = accesi.join(','); } else { delete P['enable-funding']; }
+	P['disable-funding'] = spenti.join(',');
+
+	/* lo stesso nell'indirizzo, toccando solo questi tre valori */
+	function imposta(url, nome, valore) {
+		var re = new RegExp('([?&])' + nome + '=[^&#]*(&?)');
+		url = url.replace(re, function (tutto, prima, dopo) { return dopo ? prima : ''; });
+		return valore ? url + (url.indexOf('?') > -1 ? '&' : '?') + nome + '=' + valore : url;
+	}
 	if (typeof G.url === 'string') {
-		var url = G.url.replace(/([?&])locale=[^&#]*(&?)/, function (tutto, prima, dopo) {
-			return dopo ? prima : '';
-		});
-		G.url = url + (url.indexOf('?') > -1 ? '&' : '?') + 'locale=' + codici[sigla];
+		var url = imposta(G.url, 'locale', codici[sigla]);
+		url = imposta(url, 'enable-funding', P['enable-funding'] || '');
+		G.url = imposta(url, 'disable-funding', P['disable-funding']);
 	}
 })();
 JS;
 }
 }
+
+/**
+ * Il messaggio "Paga in 3 rate" di PayPal: nelle lingue diverse
+ * dall'italiano non si vede. La lingua la scrive TDT Lingue sulla pagina
+ * (data-tdt-lang), percio' il messaggio sparisce e ricompare anche cambiando
+ * lingua dal selettore, senza ricaricare.
+ */
+if ( ! function_exists( 'tdt_lingua_pagamenti_stile' ) ) {
+function tdt_lingua_pagamenti_stile() {
+	if ( is_admin() || ! function_exists( 'tdt_lingue_attivo_qui' ) || ! tdt_lingue_attivo_qui() ) {
+		return;
+	}
+	echo '<style id="tdt-lingua-pagamenti-css">'
+		. 'html[data-tdt-lang]:not([data-tdt-lang="it"]) .ppcp-messages,'
+		. 'html[data-tdt-lang]:not([data-tdt-lang="it"]) [data-pp-message]{display:none !important}'
+		. "</style>\n";
+}
+}
+add_action( 'wp_head', 'tdt_lingua_pagamenti_stile', 20 );
