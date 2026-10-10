@@ -20,6 +20,11 @@
  *      nella cache di SiteGround: altrove la lingua di un visitatore
  *      resterebbe salvata nella pagina e la vedrebbero anche gli altri.
  *      In italiano non si tocca niente: restano le impostazioni di sempre.
+ *   3. Per PayPal (pulsanti e messaggio "Paga in 3 rate") la lingua si
+ *      scrive anche nel browser, nelle impostazioni di PayPal, un attimo
+ *      prima che il suo script le legga. Questo vale in ogni pagina, anche
+ *      in quelle che vanno nella cache: lo script e' uguale per tutti, la
+ *      lingua la legge il browser di chi guarda.
  *
  * NON tocca importi, ordini o pagamenti: cambia soltanto la lingua delle
  * scritte dentro i riquadri. Se la lingua si cambia stando gia' nella cassa,
@@ -111,6 +116,47 @@ function tdt_lingua_pagamenti_js() {
 	/* la lingua di adesso, e ogni volta che si cambia dal selettore */
 	ricorda(L.lang());
 	if (typeof L.onLang === 'function') { L.onLang(ricorda); }
+})();
+JS;
+}
+}
+
+/**
+ * PayPal, nel browser. WordPress stampa prima le impostazioni di PayPal
+ * (PayPalCommerceGateway), poi gli script "before" come questo, poi lo
+ * script di PayPal: qui la lingua scelta entra nelle impostazioni giusto in
+ * tempo. Si aggancia prima che gli script del piede vengano stampati.
+ */
+if ( ! function_exists( 'tdt_lingua_pagamenti_paypal_browser' ) ) {
+function tdt_lingua_pagamenti_paypal_browser() {
+	if ( is_admin() || ! function_exists( 'tdt_lingue_attivo_qui' ) || ! tdt_lingue_attivo_qui() ) {
+		return;
+	}
+	if ( wp_script_is( 'ppcp-smart-button', 'enqueued' ) ) {
+		wp_add_inline_script( 'ppcp-smart-button', tdt_lingua_pagamenti_paypal_js(), 'before' );
+	}
+}
+}
+add_action( 'wp_footer', 'tdt_lingua_pagamenti_paypal_browser', 5 );
+
+if ( ! function_exists( 'tdt_lingua_pagamenti_paypal_js' ) ) {
+function tdt_lingua_pagamenti_paypal_js() {
+	return <<<'JS'
+(function () {
+	'use strict';
+	/* la lingua con cui si e' aperta la pagina, decisa da TDT Lingue */
+	var sigla = window.TDT_LINGUE_INIZIALE;
+	var codici = { en: 'en_GB', fr: 'fr_FR', de: 'de_DE', es: 'es_ES' };
+	var G = window.PayPalCommerceGateway;
+	if (!G || !G.url_params || !codici[sigla]) { return; }
+	G.url_params.locale = codici[sigla];
+	/* nell'indirizzo si tocca solo "locale": il resto resta com'e' */
+	if (typeof G.url === 'string') {
+		var url = G.url.replace(/([?&])locale=[^&#]*(&?)/, function (tutto, prima, dopo) {
+			return dopo ? prima : '';
+		});
+		G.url = url + (url.indexOf('?') > -1 ? '&' : '?') + 'locale=' + codici[sigla];
+	}
 })();
 JS;
 }

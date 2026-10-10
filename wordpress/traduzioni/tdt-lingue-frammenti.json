@@ -724,5 +724,35 @@
   "fr": "Pour créer votre compte, acceptez la <strong>Politique de confidentialité</strong> et les <strong>Conditions générales</strong>.",
   "de": "Um dein Konto zu erstellen, akzeptiere die <strong>Datenschutzerklärung</strong> und die <strong>AGB</strong>.",
   "es": "Para crear tu cuenta, acepta la <strong>Política de privacidad</strong> y los <strong>Términos y condiciones</strong>."
+ },
+ "I tuoi dati personali saranno utilizzati per elaborare il tuo ordine, supportare la tua esperienza su questo sito web e per altri scopi descritti nella nostra <a href=\"{1}\" class=\"woocommerce-privacy-policy-link\" target=\"_blank\">{2}</a>.": {
+  "en": "Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our <a href=\"{1}\" class=\"woocommerce-privacy-policy-link\" target=\"_blank\">{2}</a>.",
+  "fr": "Vos données personnelles seront utilisées pour traiter votre commande, soutenir votre expérience sur ce site web et à d'autres fins décrites dans notre <a href=\"{1}\" class=\"woocommerce-privacy-policy-link\" target=\"_blank\">{2}</a>.",
+  "de": "Deine personenbezogenen Daten werden verwendet, um deine Bestellung zu bearbeiten, dein Erlebnis auf dieser Website zu unterstützen und für weitere Zwecke, die in unserer <a href=\"{1}\" class=\"woocommerce-privacy-policy-link\" target=\"_blank\">{2}</a> beschrieben sind.",
+  "es": "Tus datos personales se utilizarán para procesar tu pedido, mejorar tu experiencia en esta web y para otros fines descritos en nuestra <a href=\"{1}\" class=\"woocommerce-privacy-policy-link\" target=\"_blank\">{2}</a>."
+ },
+ "Ho letto e accetto <a href=\"{1}\" class=\"woocommerce-terms-and-conditions-link\" target=\"_blank\">{2}</a> del sito web": {
+  "en": "I have read and agree to the website <a href=\"{1}\" class=\"woocommerce-terms-and-conditions-link\" target=\"_blank\">{2}</a>",
+  "fr": "J'ai lu et j'accepte les <a href=\"{1}\" class=\"woocommerce-terms-and-conditions-link\" target=\"_blank\">{2}</a> du site",
+  "de": "Ich habe die <a href=\"{1}\" class=\"woocommerce-terms-and-conditions-link\" target=\"_blank\">{2}</a> der Website gelesen und stimme ihnen zu",
+  "es": "He leído y acepto los <a href=\"{1}\" class=\"woocommerce-terms-and-conditions-link\" target=\"_blank\">{2}</a> de la web"
+ },
+ "I tuoi dati personali saranno utilizzati per elaborare il tuo ordine, supportare la tua esperienza su questo sito web e per altri scopi descritti nella nostra": {
+  "en": "Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our",
+  "fr": "Vos données personnelles seront utilisées pour traiter votre commande, soutenir votre expérience sur ce site web et à d'autres fins décrites dans notre",
+  "de": "Deine personenbezogenen Daten werden verwendet, um deine Bestellung zu bearbeiten, dein Erlebnis auf dieser Website zu unterstützen und für weitere Zwecke, wie beschrieben in unserer",
+  "es": "Tus datos personales se utilizarán para procesar tu pedido, mejorar tu experiencia en esta web y para otros fines descritos en nuestra"
+ },
+ "Ho letto e accetto": {
+  "en": "I have read and agree to the",
+  "fr": "J'ai lu et j'accepte les",
+  "de": "Ich habe gelesen und akzeptiere die",
+  "es": "He leído y acepto los"
+ },
+ "del sito web": {
+  "en": "of the website",
+  "fr": "du site",
+  "de": "der Website",
+  "es": "de la web"
  }
 }
