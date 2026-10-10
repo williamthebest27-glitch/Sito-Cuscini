@@ -214,5 +214,71 @@
   "fr": "déjà appliqué",
   "de": "bereits abgezogen",
   "es": "ya aplicado"
+ },
+ "Acquista": {
+  "en": "Shop now",
+  "fr": "Acheter",
+  "de": "Jetzt kaufen",
+  "es": "Comprar"
+ },
+ "Apri il menu": {
+  "en": "Open menu",
+  "fr": "Ouvrir le menu",
+  "de": "Menü öffnen",
+  "es": "Abrir el menú"
+ },
+ "Chiudi il menu": {
+  "en": "Close menu",
+  "fr": "Fermer le menu",
+  "de": "Menü schließen",
+  "es": "Cerrar el menú"
+ },
+ "Menu": {
+  "en": "Menu",
+  "fr": "Menu",
+  "de": "Menü",
+  "es": "Menú"
+ },
+ "Navigazione principale": {
+  "en": "Main navigation",
+  "fr": "Navigation principale",
+  "de": "Hauptnavigation",
+  "es": "Navegación principal"
+ },
+ "Accedi o crea un account": {
+  "en": "Sign in or create an account",
+  "fr": "Connectez-vous ou créez un compte",
+  "de": "Anmelden oder Konto erstellen",
+  "es": "Inicia sesión o crea una cuenta"
+ },
+ "Il tuo account": {
+  "en": "Your account",
+  "fr": "Votre compte",
+  "de": "Dein Konto",
+  "es": "Tu cuenta"
+ },
+ "Carrello, {n} articoli": {
+  "en": "Cart, {n} items",
+  "fr": "Panier, {n} articles",
+  "de": "Warenkorb, {n} Artikel",
+  "es": "Carrito, {n} artículos"
+ },
+ "Carrello, 1 articolo": {
+  "en": "Cart, 1 item",
+  "fr": "Panier, 1 article",
+  "de": "Warenkorb, 1 Artikel",
+  "es": "Carrito, 1 artículo"
+ },
+ "{n} articoli nel carrello": {
+  "en": "{n} items in your cart",
+  "fr": "{n} articles dans votre panier",
+  "de": "{n} Artikel im Warenkorb",
+  "es": "{n} artículos en el carrito"
+ },
+ "1 articolo nel carrello": {
+  "en": "1 item in your cart",
+  "fr": "1 article dans votre panier",
+  "de": "1 Artikel im Warenkorb",
+  "es": "1 artículo en el carrito"
  }
 }

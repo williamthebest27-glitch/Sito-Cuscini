@@ -1,0 +1,980 @@
+/**
+ * ============================================================
+ * THE DOUBLE TWENTY — MENU / HEADER con SOTTOMENU + CARRELLO
+ * ------------------------------------------------------------
+ * >>> INCOLLANDO IN CODE SNIPPETS / WPCODE: NON COPIARE LA PRIMA RIGA
+ * >>> DEL FILE, quella con il tag di apertura PHP. Quei plugin fanno
+ * >>> girare il codice gia' in modalita' PHP: il tag li'
+ * >>> dentro da' "syntax error, unexpected token". Parti da questo
+ * >>> commento, oppure usa il file gia' pronto senza tag che trovi
+ * >>> nella stessa cartella: tdt-menu-header-DA-INCOLLARE.txt
+ *
+ * Questo frammento non litiga con quello vecchio del menu:
+ *   - usa nomi tutti suoi (tdtnav_*), quindi non puo' dare
+ *     "Cannot redeclare ..." nemmeno se resta attivo anche l-altro;
+ *   - se trova il vecchio attivo lo stacca da solo (e avvisa nel
+ *     pannello), cosi' non compaiono due menu.
+ * Resta comunque giusto disattivare il vecchio.
+ *
+ * Le voci si gestiscono da  Aspetto -> Menu  (posizione
+ * "Menu The Double Twenty"). Niente e' cambiato li'.
+ *
+ * COSA FA
+ *   1. "Acquista" (barra e pannello del telefono) porta al Negozio.
+ *   2. Nel pannello del telefono non c-e' piu' la riga
+ *      "Cuscini ergonomici in puro lattice".
+ *   3. Icona del carrello in alto a destra: si accende con il numero
+ *      degli articoli appena ne aggiungi uno e porta al carrello.
+ *   4. Da telefono la barra bianca e' piu' bassa (63 px invece di 78)
+ *      e sparisce il riquadro azzurro del tocco.
+ *   5. Pannello del telefono rifatto: carta bianca del sito, titoli in
+ *      Playfair Display, numeri in Inter, entrate sfalsate.
+ *   6. Dentro c'e' anche la barra bianca che compare quando si scorre:
+ *      era il frammento a parte "tdt-menu-barra", che adesso si puo'
+ *      disattivare. Se resta acceso non fa danni: si accorge che c'e'
+ *      gia' questo e si fa da parte.
+ *   7. Da telefono il menu e' tutto su un piano: le voci del
+ *      sottomenu Negozio (Scopri i prodotti, Carrello, Pagamento)
+ *      stanno in lista come le altre e la voce "Negozio" non
+ *      compare. Da monitor la tendina resta com-era.
+ *   8. Icona dell'account accanto al carrello (stesso cerchio): porta
+ *      a "Il mio account", dove si accede o ci si registra.
+ *   9. Il selettore della lingua (plugin TDT Lingue) sta nella barra,
+ *      subito prima dell'account: da monitor bandiera e sigla, da
+ *      telefono solo la bandiera, nello stesso cerchio di account e
+ *      carrello. Il plugin lo mette da solo nel posto che gli prepara
+ *      questo frammento (data-tdt-lingue) e non lo mostra piu' in basso
+ *      a sinistra. Senza il plugin il posto resta vuoto e non si vede.
+ *
+ * Il desktop resta com-era: stessa altezza (100 px a 1280), stessi
+ * colori, stesso menu a tendina, piu' l-icona del carrello.
+ *
+ * Installazione:
+ *   1) Code Snippets / WPCode -> frammento PHP ("PHP Snippet"), "ovunque".
+ *   2) Incolla da "if (!defined('ABSPATH'))" in giu'.
+ *   3) Salva e attiva, poi DISATTIVA il vecchio frammento del menu.
+ *   4) Svuota la cache di SiteGround (Speed Optimizer -> Purge).
+ * ============================================================
+ */
+
+if (!defined('ABSPATH')) { exit; }
+
+/* -----------------------------------------------------------
+ * 0) Convivenza con il vecchio frammento
+ *    Se e' ancora attivo, gli togliamo i due ganci con cui stampa
+ *    l-header: cosi' in pagina ci va solo questo, senza errori.
+ * --------------------------------------------------------- */
+if (!function_exists('tdtnav_spegni_vecchio')) {
+	function tdtnav_spegni_vecchio() {
+		if (function_exists('dtnav_render_header')) {
+			remove_action('wp_body_open', 'dtnav_render_header', 5);
+			remove_action('wp_footer', 'dtnav_render_header', 5);
+		}
+	}
+}
+add_action('init', 'tdtnav_spegni_vecchio', 1);
+
+if (!function_exists('tdtnav_avviso_vecchio')) {
+	function tdtnav_avviso_vecchio() {
+		if (!function_exists('dtnav_render_header') || !current_user_can('manage_options')) { return; }
+		echo '<div class="notice notice-warning"><p><strong>The Double Twenty</strong> — '
+		   . 'il vecchio frammento del menu e&rsquo; ancora attivo. Il menu nuovo funziona lo stesso, '
+		   . 'ma conviene disattivarlo (Frammenti di codice) per non caricare due volte lo stesso CSS.'
+		   . '</p></div>';
+	}
+}
+add_action('admin_notices', 'tdtnav_avviso_vecchio');
+
+/* -----------------------------------------------------------
+ * 1) Posizione del menu
+ * --------------------------------------------------------- */
+if (!function_exists('tdtnav_registra_menu')) {
+	function tdtnav_registra_menu() {
+		register_nav_menu('dtnav', 'Menu The Double Twenty');
+	}
+}
+add_action('after_setup_theme', 'tdtnav_registra_menu');
+
+/* -----------------------------------------------------------
+ * 2) Walker DESKTOP — link + dropdown per le voci con figli
+ * --------------------------------------------------------- */
+if (!class_exists('TDTNav_Desktop_Walker') && class_exists('Walker_Nav_Menu')) {
+	class TDTNav_Desktop_Walker extends Walker_Nav_Menu {
+		public function start_lvl(&$output, $depth = 0, $args = null) {
+			$output .= '<ul class="dtnav__sub">';
+		}
+		public function end_lvl(&$output, $depth = 0, $args = null) {
+			$output .= '</ul>';
+		}
+		public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0) {
+			$has = in_array('menu-item-has-children', (array) $item->classes, true);
+			if ($depth === 0) {
+				$output .= '<li class="dtnav__item' . ($has ? ' dtnav__item--has' : '') . '">';
+				$output .= '<a href="' . esc_url($item->url) . '" class="dtnav__link">' . esc_html($item->title);
+				if ($has) { $output .= '<span class="dtnav__caret" aria-hidden="true">&#9662;</span>'; }
+				$output .= '</a>';
+			} else {
+				$output .= '<li><a href="' . esc_url($item->url) . '" class="dtnav__sublink">' . esc_html($item->title) . '</a>';
+			}
+		}
+		public function end_el(&$output, $item, $depth = 0, $args = null) {
+			$output .= '</li>';
+		}
+	}
+}
+
+/* -----------------------------------------------------------
+ * 3) Walker MOBILE — voci numerate, tutte sullo stesso piano
+ *
+ *    Da telefono i sottomenu non ci sono: le voci figlie
+ *    ("Scopri i prodotti", "Carrello", "Pagamento") salgono in
+ *    lista come tutte le altre e la voce che le teneva insieme
+ *    ("Negozio") non viene stampata. Una lista sola, un tocco solo
+ *    per arrivare dove si vuole. Da monitor la tendina resta.
+ * --------------------------------------------------------- */
+if (!class_exists('TDTNav_Mobile_Walker') && class_exists('Walker_Nav_Menu')) {
+	class TDTNav_Mobile_Walker extends Walker_Nav_Menu {
+		private $conta = 0;
+		/* niente lista annidata: i figli proseguono in quella di sopra */
+		public function start_lvl(&$output, $depth = 0, $args = null) {}
+		public function end_lvl(&$output, $depth = 0, $args = null) {}
+		private function cartella($item, $depth) {
+			return $depth === 0 && in_array('menu-item-has-children', (array) $item->classes, true);
+		}
+		public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0) {
+			/* la voce che fa da cartella non si stampa: al suo posto
+			   compaiono i suoi figli, numerati come le altre */
+			if ($this->cartella($item, $depth)) { return; }
+			$this->conta++;
+			$indice = str_pad($this->conta, 2, '0', STR_PAD_LEFT);
+			$output .= '<li class="dtnav-menu__item">';
+			$output .= '<a href="' . esc_url($item->url) . '" class="dtnav-menu__link" data-dtnav-close>'
+			         . '<span class="dtnav-menu__index">' . esc_html($indice) . '</span>'
+			         . '<span class="dtnav-menu__label">' . esc_html($item->title) . '</span>'
+			         . '<span class="dtnav-menu__chevron" aria-hidden="true">&rarr;</span></a>';
+		}
+		public function end_el(&$output, $item, $depth = 0, $args = null) {
+			if ($this->cartella($item, $depth)) { return; }
+			$output .= '</li>';
+		}
+	}
+}
+
+/* -----------------------------------------------------------
+ * 4) Menu di scorta (finche' non assegni un menu vero)
+ *    Struttura ad albero: [titolo, url, [figli...]]
+ * --------------------------------------------------------- */
+if (!function_exists('tdtnav_albero')) {
+	function tdtnav_albero() {
+		return array(
+			array('Homepage', home_url('/'), array()),
+			array('Negozio', home_url('/negozio/'), array(
+				array('Scopri i prodotti', home_url('/negozio/')),
+				array('Carrello', home_url('/carrello/')),
+				array('Pagamento', home_url('/pagamento/')),
+			)),
+			array('Contatti', home_url('/contatti/'), array()),
+			array('Forniture B2B', home_url('/forniture-cuscini-b2b/'), array()),
+		);
+	}
+}
+if (!function_exists('tdtnav_scorta_desktop')) {
+	function tdtnav_scorta_desktop() {
+		$out = '<ul class="dtnav__menu">';
+		foreach (tdtnav_albero() as $v) {
+			$has = !empty($v[2]);
+			$out .= '<li class="dtnav__item' . ($has ? ' dtnav__item--has' : '') . '">';
+			$out .= '<a href="' . esc_url($v[1]) . '" class="dtnav__link">' . esc_html($v[0]);
+			if ($has) { $out .= '<span class="dtnav__caret" aria-hidden="true">&#9662;</span>'; }
+			$out .= '</a>';
+			if ($has) {
+				$out .= '<ul class="dtnav__sub">';
+				foreach ($v[2] as $f) {
+					$out .= '<li><a href="' . esc_url($f[1]) . '" class="dtnav__sublink">' . esc_html($f[0]) . '</a></li>';
+				}
+				$out .= '</ul>';
+			}
+			$out .= '</li>';
+		}
+		return $out . '</ul>';
+	}
+}
+if (!function_exists('tdtnav_scorta_mobile')) {
+	function tdtnav_scorta_mobile() {
+		$out = '<ul class="dtnav-menu__list">';
+		$i = 0;
+		/* come nel walker: le voci con figli non si stampano, al loro
+		   posto vanno i figli, tutti sullo stesso piano */
+		foreach (tdtnav_albero() as $v) {
+			$voci = !empty($v[2]) ? $v[2] : array(array($v[0], $v[1]));
+			foreach ($voci as $f) {
+				$i++;
+				$indice = str_pad($i, 2, '0', STR_PAD_LEFT);
+				$out .= '<li class="dtnav-menu__item"><a href="' . esc_url($f[1]) . '" class="dtnav-menu__link" data-dtnav-close>'
+				      . '<span class="dtnav-menu__index">' . esc_html($indice) . '</span>'
+				      . '<span class="dtnav-menu__label">' . esc_html($f[0]) . '</span>'
+				      . '<span class="dtnav-menu__chevron" aria-hidden="true">&rarr;</span></a></li>';
+			}
+		}
+		return $out . '</ul>';
+	}
+}
+
+/* -----------------------------------------------------------
+ * 5) L-ICONA DEL CARRELLO
+ *
+ *    Il numero lo stampa il server, cosi' e' gia' giusto al primo
+ *    disegno. Poi resta aggiornato da solo in tre modi, dal piu'
+ *    veloce al piu' sicuro:
+ *      a) al clic su "aggiungi al carrello" il numero sale subito,
+ *         senza aspettare la risposta (e' il "si accende immediato");
+ *      b) WooCommerce rimpiazza il pallino con quello vero tramite i
+ *         suoi frammenti (woocommerce_add_to_cart_fragments, sotto);
+ *      c) se i frammenti non ci sono - o la pagina arriva dalla cache
+ *         di SiteGround - il codice chiede il numero alla Store API.
+ *    Senza WooCommerce l-icona non viene stampata affatto.
+ * --------------------------------------------------------- */
+if (!function_exists('tdtnav_cart_conta')) {
+	function tdtnav_cart_conta() {
+		if (!function_exists('WC')) { return 0; }
+		$wc = WC();
+		if (!is_object($wc) || empty($wc->cart) || !is_object($wc->cart)) { return 0; }
+		if (!method_exists($wc->cart, 'get_cart_contents_count')) { return 0; }
+		return (int) $wc->cart->get_cart_contents_count();
+	}
+}
+
+/** Il pallino con il numero: e' questo il pezzo che WooCommerce rimpiazza. */
+if (!function_exists('tdtnav_cart_pallino')) {
+	function tdtnav_cart_pallino($n) {
+		$n = (int) $n;
+		return '<span class="dtnav__cart-n" data-count="' . esc_attr($n) . '" aria-hidden="true">'
+		     . esc_html($n > 99 ? '99+' : (string) $n) . '</span>';
+	}
+}
+
+/** L-icona intera (link alla pagina carrello + disegno + pallino). */
+if (!function_exists('tdtnav_cart_icona')) {
+	function tdtnav_cart_icona() {
+		if (!function_exists('WC')) { return ''; }
+
+		$n   = tdtnav_cart_conta();
+		$url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/carrello/');
+		$lab = ($n === 1) ? 'Carrello, 1 articolo' : sprintf('Carrello, %d articoli', $n);
+
+		$svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" '
+		     . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+		     . '<path d="M3 4h2.2l2.3 9.6a1.8 1.8 0 0 0 1.75 1.4h7.9a1.8 1.8 0 0 0 1.75-1.35L21 7.4H6.4"/>'
+		     . '<circle cx="10" cy="19.4" r="1.25"/><circle cx="17.3" cy="19.4" r="1.25"/></svg>';
+
+		return '<a href="' . esc_url($url) . '" class="dtnav__cart' . ($n > 0 ? ' is-full' : '') . '"'
+		     . ' aria-label="' . esc_attr($lab) . '" data-dtnav-cart>'
+		     . $svg
+		     . tdtnav_cart_pallino($n)
+		     . '<span class="dtnav__cart-sr" role="status" aria-live="polite"></span>'
+		     . '</a>';
+	}
+}
+
+/** L-icona dell'account: porta a "Il mio account" (accesso o registrazione). */
+if (!function_exists('tdtnav_account_icona')) {
+	function tdtnav_account_icona() {
+		if (!function_exists('wc_get_page_permalink')) { return ''; }
+
+		$url = wc_get_page_permalink('myaccount');
+		$lab = is_user_logged_in() ? 'Il tuo account' : 'Accedi o crea un account';
+
+		$svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" '
+		     . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+		     . '<circle cx="12" cy="8.4" r="3.7"/><path d="M4.9 20c.9-3.7 3.8-5.8 7.1-5.8s6.2 2.1 7.1 5.8"/></svg>';
+
+		return '<a href="' . esc_url($url) . '" class="dtnav__account" aria-label="' . esc_attr($lab) . '">'
+		     . $svg . '</a>';
+	}
+}
+
+/**
+ * Il posto del selettore della lingua, subito prima dell'account.
+ * Lo riempie il plugin TDT Lingue (cerca da solo [data-tdt-lingue]):
+ * qui c-e' solo il contenitore. Dove il plugin non traduce (pagine di
+ * Nutrex Lab, pagine escluse, plugin spento) il posto non si stampa.
+ */
+if (!function_exists('tdtnav_lingua_posto')) {
+	function tdtnav_lingua_posto() {
+		if (!function_exists('tdt_lingue_attivo_qui') || !tdt_lingue_attivo_qui()) { return ''; }
+		return '<div class="dtnav__lang" data-tdt-lingue></div>';
+	}
+}
+
+/** Il pallino aggiornato viaggia insieme agli altri frammenti di Woo. */
+if (!function_exists('tdtnav_cart_frammento')) {
+	function tdtnav_cart_frammento($frammenti) {
+		if (!is_array($frammenti)) { $frammenti = array(); }
+		$frammenti['span.dtnav__cart-n'] = tdtnav_cart_pallino(tdtnav_cart_conta());
+		return $frammenti;
+	}
+}
+add_filter('woocommerce_add_to_cart_fragments', 'tdtnav_cart_frammento');
+
+/** I frammenti hanno bisogno del loro script: su alcune pagine Woo non lo mette. */
+if (!function_exists('tdtnav_accoda')) {
+	function tdtnav_accoda() {
+		if (is_admin() || !function_exists('WC')) { return; }
+		if (wp_script_is('wc-cart-fragments', 'registered')) {
+			wp_enqueue_script('wc-cart-fragments');
+		}
+	}
+}
+add_action('wp_enqueue_scripts', 'tdtnav_accoda', 20);
+
+/* -----------------------------------------------------------
+ * 6) Header + pannello del telefono
+ *    Tutto costruito come stringa e stampato in un colpo solo: niente
+ *    uscite e rientri dalla modalita' PHP in mezzo al codice, cosi' il
+ *    frammento si comporta allo stesso modo dentro Code Snippets,
+ *    WPCode o functions.php.
+ * --------------------------------------------------------- */
+if (!function_exists('tdtnav_header_html')) {
+	function tdtnav_header_html() {
+		$home = esc_url(home_url('/'));
+		$cta  = esc_url(home_url('/negozio/'));   /* "Acquista" -> pagina Negozio */
+		$cart = tdtnav_cart_icona();
+
+		$desktop = '';
+		$mobile  = '';
+		if (has_nav_menu('dtnav') && class_exists('TDTNav_Desktop_Walker')) {
+			$desktop = wp_nav_menu(array(
+				'theme_location' => 'dtnav',
+				'container'      => false,
+				'items_wrap'     => '<ul class="dtnav__menu">%3$s</ul>',
+				'walker'         => new TDTNav_Desktop_Walker(),
+				'depth'          => 2,
+				'echo'           => false,
+			));
+			$mobile = wp_nav_menu(array(
+				'theme_location' => 'dtnav',
+				'container'      => false,
+				'items_wrap'     => '<ul class="dtnav-menu__list">%3$s</ul>',
+				'walker'         => new TDTNav_Mobile_Walker(),
+				'depth'          => 2,
+				'echo'           => false,
+			));
+		}
+		if (!is_string($desktop) || $desktop === '') { $desktop = tdtnav_scorta_desktop(); }
+		if (!is_string($mobile)  || $mobile  === '') { $mobile  = tdtnav_scorta_mobile(); }
+
+		$marchio = '<span class="dtnav__brand-the">The</span>'
+		         . '<span class="dtnav__brand-name">Double Twenty</span>';
+
+		$h  = '<header class="dtnav" id="dtnav">';
+		$h .=   '<a href="' . $home . '" class="dtnav__brand" aria-label="The Double Twenty">' . $marchio . '</a>';
+		$h .=   '<nav class="dtnav__links" aria-label="Navigazione principale">' . $desktop . '</nav>';
+		$h .=   '<div class="dtnav__actions">';
+		$h .=     tdtnav_lingua_posto();
+		$h .=     tdtnav_account_icona();
+		$h .=     $cart;
+		$h .=     '<a href="' . $cta . '" class="dtnav__cta">Acquista</a>';
+		$h .=     '<button type="button" class="dtnav__toggle" id="dtnav-toggle" '
+		        . 'aria-label="Apri il menu" aria-expanded="false" aria-controls="dtnav-mobile">'
+		        . '<span class="dtnav__toggle-line"></span><span class="dtnav__toggle-line"></span></button>';
+		$h .=   '</div>';
+		$h .= '</header>';
+
+		$h .= '<div class="dtnav-menu" id="dtnav-mobile" role="dialog" aria-modal="true" aria-label="Menu" hidden>';
+		$h .=   '<div class="dtnav-menu__bar">';
+		$h .=     '<a href="' . $home . '" class="dtnav__brand" aria-label="The Double Twenty" data-dtnav-close>' . $marchio . '</a>';
+		$h .=     '<button type="button" class="dtnav-menu__close" id="dtnav-close" aria-label="Chiudi il menu">'
+		        . '<span class="dtnav-menu__close-x" aria-hidden="true"></span></button>';
+		$h .=   '</div>';
+		$h .=   $mobile;
+		$h .=   '<div class="dtnav-menu__foot">';
+		$h .=     '<a href="' . $cta . '" class="dtnav-menu__cta" data-dtnav-close>Acquista <span aria-hidden="true">&rarr;</span></a>';
+		$h .=   '</div>';
+		$h .= '</div>';
+
+		return $h;
+	}
+}
+
+if (!function_exists('tdtnav_stampa_header')) {
+	function tdtnav_stampa_header() {
+		static $fatto = false;
+		if ($fatto || is_admin()) { return; }
+		$fatto = true;
+		echo tdtnav_header_html(); /* gia' tutto passato da esc_* qui sopra */
+	}
+}
+add_action('wp_body_open', 'tdtnav_stampa_header', 5);
+add_action('wp_footer', 'tdtnav_stampa_header', 5);
+
+/* -----------------------------------------------------------
+ * 7) Font + CSS
+ *    Priorita' 99: se il frammento vecchio e' ancora attivo, il suo
+ *    CSS esce a priorita' 10 e il nostro deve venire dopo.
+ *    Fraunces resta solo per il marchio "The"; le voci del pannello
+ *    usano Playfair Display, lo stesso carattere dei titoli della home.
+ * --------------------------------------------------------- */
+if (!function_exists('tdtnav_stampa_css')) {
+	function tdtnav_stampa_css() {
+		echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+		echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+		echo '<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,500'
+		   . '&#038;family=Inter:wght@400;500;600&#038;family=Playfair+Display:wght@400;500'
+		   . '&#038;display=swap" rel="stylesheet">' . "\n";
+		echo '<style id="tdtnav-css">' . tdtnav_css() . '</style>' . "\n";
+	}
+}
+add_action('wp_head', 'tdtnav_stampa_css', 99);
+
+if (!function_exists('tdtnav_stampa_js')) {
+	function tdtnav_stampa_js() {
+		$dati = array(
+			'cart' => function_exists('WC') ? esc_url_raw(rest_url('wc/store/v1/cart')) : '',
+		);
+		echo '<script id="tdtnav-js">var DTNAV_CART=' . wp_json_encode($dati) . ';' . "\n"
+		   . tdtnav_js() . '</script>' . "\n";
+	}
+}
+add_action('wp_footer', 'tdtnav_stampa_js', 21);
+
+if (!function_exists('tdtnav_css')) {
+function tdtnav_css() {
+	return <<<'CSS'
+:root{
+  /* --- barra in alto: i valori storici, il desktop non cambia --- */
+  --dtnav-canvas:#f4f0e9; --dtnav-ink:#211e1a; --dtnav-ink-soft:#5a544b;
+  --dtnav-ink-faint:#8a8377; --dtnav-clay:#c7a57b;
+  --dtnav-ease:cubic-bezier(0.16,1,0.3,1);
+  --dtnav-font-display:"Fraunces",Georgia,serif; --dtnav-font-sans:"Inter",system-ui,sans-serif;
+  /* --- pannello del telefono: gli stessi valori del sito --- */
+  --dtnav-serif:"Playfair Display",Georgia,"Times New Roman",serif;
+  --dtnav-paper:#FFFFFF; --dtnav-paper-2:#F7F7F5;
+  --dtnav-text:#111111; --dtnav-text-soft:#6B6B6B;
+  --dtnav-hair:rgba(17,17,17,.09); --dtnav-accent:#8A7967;
+  /* --- misure della barra: qui si decide quanto e' alta --- */
+  --dtnav-pad-y:clamp(1.1rem,2.2vw,1.9rem);
+  --dtnav-pad-x:clamp(1.25rem,4vw,3.25rem);
+  --dtnav-btn:42px;
+}
+.dtnav,.dtnav-menu{font-family:var(--dtnav-font-sans);}
+.dtnav *,.dtnav-menu *{box-sizing:border-box;}
+/* niente riquadro azzurro di sistema al tocco: il riscontro lo diamo noi */
+.dtnav,.dtnav-menu{-webkit-tap-highlight-color:transparent;}
+.dtnav a,.dtnav button,.dtnav-menu a,.dtnav-menu button{
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+html.dtnav-open,html.dtnav-open body{overflow:hidden !important;}
+
+.dtnav{position:fixed;inset:0 0 auto 0;z-index:9990;display:flex;align-items:center;
+  justify-content:space-between;padding:var(--dtnav-pad-y) var(--dtnav-pad-x);}
+.dtnav>*{opacity:0;transform:translateY(-14px);animation:dtnavIn .8s var(--dtnav-ease) forwards;}
+.dtnav>*:nth-child(1){animation-delay:.05s;}
+.dtnav>*:nth-child(2){animation-delay:.14s;}
+.dtnav>*:nth-child(3){animation-delay:.23s;}
+@keyframes dtnavIn{to{opacity:1;transform:none;}}
+
+.dtnav__brand{display:inline-flex;align-items:baseline;gap:.4em;line-height:1;color:var(--dtnav-ink);text-decoration:none;}
+.dtnav__brand-the{font-family:var(--dtnav-font-display);font-style:italic;font-weight:500;font-size:clamp(1.05rem,1.5vw,1.3rem);}
+.dtnav__brand-name{text-transform:uppercase;letter-spacing:.2em;font-weight:500;font-size:clamp(.72rem,1vw,.86rem);}
+
+/* ---- DESKTOP: barra + dropdown ---- */
+.dtnav__links{display:none;}
+@media(min-width:900px){.dtnav__links{display:block;}}
+.dtnav__menu{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:clamp(1.6rem,2.6vw,2.8rem);}
+.dtnav__item{position:relative;}
+.dtnav__link{position:relative;display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem;letter-spacing:.02em;
+  color:var(--dtnav-ink);text-decoration:none;padding-bottom:2px;cursor:pointer;}
+.dtnav__link::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:1px;background:var(--dtnav-ink);
+  transform:scaleX(0);transform-origin:right;transition:transform .5s var(--dtnav-ease);}
+.dtnav__link:hover::after{transform:scaleX(1);transform-origin:left;}
+.dtnav__caret{font-size:.66em;line-height:1;transition:transform .4s var(--dtnav-ease);}
+.dtnav__item--has:hover>.dtnav__link .dtnav__caret,
+.dtnav__item--has:focus-within>.dtnav__link .dtnav__caret{transform:rotate(180deg);}
+
+.dtnav__sub{list-style:none;margin:0;padding:.5rem;position:absolute;top:100%;left:50%;
+  transform:translate(-50%,10px);min-width:200px;display:flex;flex-direction:column;gap:.12rem;
+  background:linear-gradient(165deg,rgba(255,255,255,.92) 0%,rgba(246,241,232,.88) 100%);
+  border:1px solid rgba(199,165,123,.35);border-radius:16px;
+  box-shadow:0 34px 64px -34px rgba(33,30,26,.5);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .4s var(--dtnav-ease),transform .4s var(--dtnav-ease),visibility .4s;z-index:20;}
+.dtnav__sub::before{content:"";position:absolute;top:-12px;left:0;right:0;height:12px;} /* ponte hover */
+.dtnav__item--has:hover>.dtnav__sub,
+.dtnav__item--has:focus-within>.dtnav__sub{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0);}
+.dtnav__sublink{display:block;padding:.6rem .8rem;border-radius:10px;font-size:.82rem;letter-spacing:.01em;
+  color:var(--dtnav-ink-soft);text-decoration:none;white-space:nowrap;
+  transition:background .3s var(--dtnav-ease),color .3s var(--dtnav-ease);}
+.dtnav__sublink:hover{background:rgba(199,165,123,.16);color:var(--dtnav-ink);}
+
+/* ---- il gruppo a destra: lingua, account, carrello, Acquista, hamburger ---- */
+.dtnav__actions{display:flex;align-items:center;gap:clamp(.5rem,1.2vw,.85rem);}
+
+.dtnav__cta{font-size:.82rem;letter-spacing:.02em;color:var(--dtnav-ink);text-decoration:none;padding:.6rem 1.15rem;
+  border:1px solid rgba(33,30,26,.28);border-radius:999px;
+  transition:background .5s var(--dtnav-ease),color .5s var(--dtnav-ease),border-color .5s var(--dtnav-ease);}
+.dtnav__cta:hover{background:var(--dtnav-ink);color:var(--dtnav-canvas);border-color:var(--dtnav-ink);}
+@media(max-width:899px){.dtnav__cta{display:none;}}
+
+/* ---- CARRELLO ---- */
+.dtnav__cart{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:var(--dtnav-btn);height:var(--dtnav-btn);flex:none;border-radius:999px;
+  color:var(--dtnav-ink);text-decoration:none;
+  border:1px solid rgba(33,30,26,.16);background:rgba(244,240,233,.45);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:border-color .5s var(--dtnav-ease),background .5s var(--dtnav-ease),transform .45s var(--dtnav-ease);}
+.dtnav__cart svg{width:19px;height:19px;display:block;}
+.dtnav__cart:hover{border-color:rgba(33,30,26,.38);}
+.dtnav__cart:active{transform:scale(.94);}
+.dtnav__cart.is-full{border-color:rgba(33,30,26,.34);}
+/* il pallino col numero: c-e' solo quando il carrello non e' vuoto */
+.dtnav__cart-n{position:absolute;top:-4px;right:-4px;display:none;align-items:center;justify-content:center;
+  min-width:19px;height:19px;padding:0 5px;border-radius:999px;
+  background:var(--dtnav-ink);color:#fff;font-family:var(--dtnav-font-sans);
+  font-size:.62rem;font-weight:600;line-height:1;letter-spacing:.01em;font-variant-numeric:tabular-nums;
+  box-shadow:0 0 0 2px #fff;}
+.dtnav__cart.is-full .dtnav__cart-n{display:inline-flex;}
+/* l-anello che si allarga quando il numero sale */
+.dtnav__cart::after{content:"";position:absolute;inset:-2px;border-radius:999px;
+  border:1px solid var(--dtnav-ink);opacity:0;pointer-events:none;}
+.dtnav__cart.is-pop::after{animation:dtnavCartRing .8s var(--dtnav-ease);}
+.dtnav__cart.is-pop{animation:dtnavCartNudge .6s var(--dtnav-ease);}
+.dtnav__cart.is-pop .dtnav__cart-n{animation:dtnavCartPop .6s var(--dtnav-ease);}
+.dtnav__cart-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);
+  white-space:nowrap;}
+@keyframes dtnavCartPop{0%{transform:scale(.3);opacity:0}55%{transform:scale(1.22);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes dtnavCartNudge{0%{transform:translateY(0)}35%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+@keyframes dtnavCartRing{0%{opacity:.55;transform:scale(.72)}100%{opacity:0;transform:scale(1.45)}}
+
+/* ---- ACCOUNT: lo stesso cerchio del carrello ---- */
+.dtnav__account{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:var(--dtnav-btn);height:var(--dtnav-btn);flex:none;border-radius:999px;
+  color:var(--dtnav-ink);text-decoration:none;
+  border:1px solid rgba(33,30,26,.16);background:rgba(244,240,233,.45);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:border-color .5s var(--dtnav-ease),background .5s var(--dtnav-ease),transform .45s var(--dtnav-ease);}
+.dtnav__account svg{width:19px;height:19px;display:block;}
+.dtnav__account:hover{border-color:rgba(33,30,26,.38);}
+.dtnav__account:active{transform:scale(.94);}
+
+/* ---- LINGUA: il selettore del plugin TDT Lingue, vestito come i
+   cerchi accanto. Il pulsante e la tendina li costruisce il plugin;
+   qui si cambiano solo misure e colori, con un selettore piu' forte del
+   suo (.dtnav davanti), cosi' vince senza bisogno di !important. ---- */
+.dtnav__lang{display:flex;align-items:center;flex:none;}
+.dtnav__lang:empty{display:none;}  /* plugin spento: niente buco */
+.dtnav .dtnav__lang .tdt-lingue{display:block;font-family:var(--dtnav-font-sans);color:var(--dtnav-ink);}
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__btn{
+  height:var(--dtnav-btn);gap:7px;padding:0 13px 0 12px;
+  border:1px solid rgba(33,30,26,.16);background:rgba(244,240,233,.45);color:var(--dtnav-ink);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:none;
+  transition:border-color .5s var(--dtnav-ease),background .5s var(--dtnav-ease),transform .45s var(--dtnav-ease);}
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__btn:hover,
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__btn:focus-visible{
+  border-color:rgba(33,30,26,.38);background:rgba(244,240,233,.45);color:var(--dtnav-ink);}
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__btn:active{transform:scale(.94);}
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__flag{width:20px;height:14px;}
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__code{font-size:.72rem;letter-spacing:.14em;}
+/* la tendina si apre sotto la barra, allineata a destra: il pulsante e'
+   gia' sul lato destro dello schermo, dall-altra parte non ci starebbe */
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__menu{right:0;left:auto;}
+.dtnav .dtnav__lang .tdt-lingue .tdt-lingue__card{transform-origin:top right;}
+
+/* da telefono: solo la bandiera, in un cerchio come account e carrello.
+   La tendina si appoggia al gruppo delle icone (che arriva al bordo
+   destro), non al pulsante: cosi' non esce mai dallo schermo. */
+@media(max-width:899px){
+  .dtnav__actions{position:relative;}
+  .dtnav .dtnav__lang .tdt-lingue{position:static;}
+  .dtnav .dtnav__lang .tdt-lingue .tdt-lingue__btn{width:var(--dtnav-btn);padding:0;justify-content:center;}
+  .dtnav .dtnav__lang .tdt-lingue .tdt-lingue__code,
+  .dtnav .dtnav__lang .tdt-lingue .tdt-lingue__chev{display:none;}
+}
+
+.dtnav__toggle{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  width:var(--dtnav-btn);height:var(--dtnav-btn);flex:none;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(33,30,26,.16);
+  background:rgba(244,240,233,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:border-color .5s var(--dtnav-ease),background .5s var(--dtnav-ease);}
+.dtnav__toggle:hover{border-color:rgba(33,30,26,.35);}
+.dtnav__toggle-line{width:19px;height:1.5px;border-radius:2px;background:var(--dtnav-ink);
+  transition:transform .4s var(--dtnav-ease),width .4s var(--dtnav-ease);}
+.dtnav__toggle:hover .dtnav__toggle-line:last-child{width:12px;}
+@media(min-width:900px){.dtnav__toggle{display:none;}}
+
+/* ---- la barra bianca quando si scorre ----
+   Prima era un frammento a parte (tdt-menu-barra): adesso sta qui, cosi'
+   il menu e' tutto in un pezzo solo. Il filetto sotto c'e' sempre, solo
+   trasparente: se comparisse solo quando serve, il menu crescerebbe di un
+   pixel e il contenuto sotto ballerebbe. */
+header.dtnav{border-bottom:1px solid transparent;
+  transition:background-color .35s var(--dtnav-ease),
+             border-bottom-color .35s var(--dtnav-ease),
+             box-shadow .35s var(--dtnav-ease),
+             padding-bottom .35s var(--dtnav-ease);}
+header.dtnav.dtnav--barra{background:#FFFFFF;
+  border-bottom-color:rgba(33,30,26,.10);
+  box-shadow:0 10px 30px -24px rgba(33,30,26,.55);
+  /* solo di sotto: sopra resta com-era, cosi' il menu non fa un salto */
+  padding-bottom:clamp(.8rem,1.6vw,1.25rem);}
+/* col pannello del telefono aperto la barra non serve: davanti c-e' il
+   pannello a tutto schermo */
+html.dtnav-open header.dtnav.dtnav--barra{
+  background:transparent;border-bottom-color:transparent;box-shadow:none;}
+
+/* Da telefono la barra si stringe: 63 px invece di 78 (61 da scorsi). */
+@media(max-width:899px){
+  :root{--dtnav-pad-y:10px;}
+  html header.dtnav.dtnav--barra{padding-bottom:8px;}
+}
+
+/* Telefoni stretti: con la lingua le icone sono quattro, e il marchio ci
+   sta in riga solo se tutto si stringe un poco. L-imbottitura cresce di
+   quanto calano i cerchi, cosi' la barra resta alta 63 px (61 da
+   scorsi) come prima. Stanno qui, dopo le regole del telefono, perche'
+   devono vincere su quelle. */
+@media(max-width:420px){
+  .dtnav{--dtnav-btn:38px;--dtnav-pad-y:12px;}
+  html header.dtnav.dtnav--barra{padding-bottom:10px;}
+  .dtnav__actions{gap:6px;}
+  .dtnav__brand{white-space:nowrap;}
+  .dtnav__brand-name{letter-spacing:.14em;}
+}
+@media(max-width:380px){
+  .dtnav__brand-the{font-size:1rem;}
+  .dtnav__brand-name{font-size:.66rem;letter-spacing:.1em;}
+}
+@media(max-width:360px){
+  .dtnav{--dtnav-btn:36px;--dtnav-pad-y:13px;--dtnav-pad-x:14px;}
+  html header.dtnav.dtnav--barra{padding-bottom:11px;}
+  .dtnav__actions{gap:4px;}
+  .dtnav__brand-name{font-size:.62rem;letter-spacing:.08em;}
+}
+
+/* ==========================================================
+   PANNELLO DEL TELEFONO
+   Carta bianca del sito, titoli in Playfair, numeri in Inter.
+   ========================================================== */
+.dtnav-menu{position:fixed;inset:0;z-index:9995;display:flex;flex-direction:column;
+  padding:var(--dtnav-pad-y) var(--dtnav-pad-x)
+          calc(clamp(1.2rem,4.5vh,2.2rem) + env(safe-area-inset-bottom,0px));
+  color:var(--dtnav-text);
+  background:
+    radial-gradient(118% 58% at 100% 0%,rgba(138,121,103,.11) 0%,rgba(138,121,103,0) 62%),
+    linear-gradient(180deg,var(--dtnav-paper) 0%,var(--dtnav-paper) 44%,var(--dtnav-paper-2) 100%);
+  opacity:0;transition:opacity .4s var(--dtnav-ease);
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.dtnav-menu[hidden]{display:none;}
+.dtnav-menu.is-open{opacity:1;}
+
+.dtnav-menu__bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.dtnav-menu .dtnav__brand{color:var(--dtnav-text);}
+.dtnav-menu__close{display:grid;place-items:center;width:var(--dtnav-btn);height:var(--dtnav-btn);flex:none;
+  border-radius:999px;cursor:pointer;color:var(--dtnav-text);
+  border:1px solid var(--dtnav-hair);background:rgba(255,255,255,.55);
+  transition:border-color .45s var(--dtnav-ease),transform .5s var(--dtnav-ease);}
+.dtnav-menu__close:hover,.dtnav-menu__close:focus-visible{border-color:rgba(17,17,17,.4);transform:rotate(90deg);}
+.dtnav-menu__close:active{transform:rotate(90deg) scale(.94);}
+.dtnav-menu__close-x{position:relative;width:16px;height:16px;}
+.dtnav-menu__close-x::before,.dtnav-menu__close-x::after{content:"";position:absolute;top:50%;left:0;width:100%;height:1.4px;border-radius:2px;background:currentColor;}
+.dtnav-menu__close-x::before{transform:rotate(45deg);}
+.dtnav-menu__close-x::after{transform:rotate(-45deg);}
+
+.dtnav-menu__list{list-style:none;margin:auto 0;padding:clamp(1rem,4vh,2.2rem) 0 0;display:flex;flex-direction:column;}
+.dtnav-menu__item{border-top:1px solid var(--dtnav-hair);}
+.dtnav-menu__item:first-child{border-top:0;}
+.dtnav-menu__link{position:relative;display:flex;width:100%;align-items:center;
+  gap:clamp(.75rem,3.2vw,1.1rem);padding:clamp(.7rem,2.3vh,1.05rem) 0;
+  color:var(--dtnav-text);text-decoration:none;background:none;border:none;font:inherit;text-align:left;
+  cursor:pointer;-webkit-user-select:none;user-select:none;
+  transition:opacity .35s var(--dtnav-ease);}
+.dtnav-menu__link:active{opacity:.5;}
+.dtnav-menu__index{flex:none;min-width:2.1em;font-family:var(--dtnav-font-sans);
+  font-size:.62rem;font-weight:500;letter-spacing:.22em;color:var(--dtnav-accent);
+  font-variant-numeric:tabular-nums;}
+.dtnav-menu__label{flex:1;min-width:0;font-family:var(--dtnav-serif);font-weight:400;font-style:normal;
+  font-size:clamp(1.9rem,9.2vw,2.75rem);line-height:1.06;letter-spacing:-.022em;}
+.dtnav-menu__chevron{flex:none;font-size:1.05rem;line-height:1;color:var(--dtnav-text-soft);
+  opacity:.45;transform:translateX(-3px);
+  transition:transform .5s var(--dtnav-ease),opacity .5s var(--dtnav-ease);}
+.dtnav-menu__link:hover .dtnav-menu__chevron,
+.dtnav-menu__link:active .dtnav-menu__chevron,
+.dtnav-menu__link:focus-visible .dtnav-menu__chevron{opacity:1;transform:translateX(0);}
+
+/* il piu' che diventa meno: due filetti, niente carattere tipografico */
+.dtnav-menu__caret{position:relative;flex:none;width:19px;height:19px;font-size:0;color:var(--dtnav-accent);}
+.dtnav-menu__caret::before,.dtnav-menu__caret::after{content:"";position:absolute;top:50%;left:50%;
+  width:15px;height:1.4px;border-radius:2px;background:currentColor;transform:translate(-50%,-50%);
+  transition:transform .45s var(--dtnav-ease),opacity .3s var(--dtnav-ease);}
+.dtnav-menu__caret::after{transform:translate(-50%,-50%) rotate(90deg);}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__caret::after{transform:translate(-50%,-50%) rotate(0deg);opacity:0;}
+
+/* sottomenu a fisarmonica */
+.dtnav-menu__sub{list-style:none;margin:0;padding:0;max-height:0;overflow:hidden;opacity:0;
+  transition:max-height .55s var(--dtnav-ease),opacity .4s var(--dtnav-ease),padding .55s var(--dtnav-ease);}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__sub{max-height:56vh;opacity:1;padding-bottom:clamp(.5rem,1.8vh,.95rem);}
+.dtnav-menu__subitem{border-top:1px solid rgba(17,17,17,.06);}
+.dtnav-menu__subitem:first-child{border-top:0;}
+/* le voci del sottomenu: piu' grandi delle briciole di prima, e con abbastanza
+   imbottitura da essere comode da toccare (riga alta circa 44 px) */
+.dtnav-menu__sublink{display:flex;align-items:center;gap:.8rem;
+  padding:.78rem 0 .78rem clamp(2.2rem,10vw,3rem);
+  font-family:var(--dtnav-font-sans);font-size:clamp(1.05rem,4.6vw,1.35rem);
+  font-weight:500;letter-spacing:-.012em;
+  color:var(--dtnav-text-soft);text-decoration:none;
+  opacity:0;transform:translateY(-6px);
+  transition:color .3s var(--dtnav-ease),opacity .4s var(--dtnav-ease),transform .5s var(--dtnav-ease);}
+.dtnav-menu__sublink::before{content:"";flex:none;width:18px;height:1px;background:currentColor;opacity:.5;
+  transition:width .45s var(--dtnav-ease);}
+.dtnav-menu__sublink:hover,.dtnav-menu__sublink:active,.dtnav-menu__sublink:focus-visible{color:var(--dtnav-text);}
+.dtnav-menu__sublink:hover::before,.dtnav-menu__sublink:active::before{width:28px;}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__sublink{opacity:1;transform:none;}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__subitem:nth-child(1) .dtnav-menu__sublink{transition-delay:.06s,.06s,.06s;}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__subitem:nth-child(2) .dtnav-menu__sublink{transition-delay:.12s,.12s,.12s;}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__subitem:nth-child(3) .dtnav-menu__sublink{transition-delay:.18s,.18s,.18s;}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__subitem:nth-child(4) .dtnav-menu__sublink{transition-delay:.24s,.24s,.24s;}
+.dtnav-menu__item--has.is-expanded .dtnav-menu__subitem:nth-child(5) .dtnav-menu__sublink{transition-delay:.30s,.30s,.30s;}
+
+/* entrate sfalsate: prima la testata, poi le voci, poi il pulsante */
+.dtnav-menu.is-open .dtnav-menu__bar,
+.dtnav-menu.is-open .dtnav-menu__item,
+.dtnav-menu.is-open .dtnav-menu__foot{opacity:0;animation:dtnavItem .75s var(--dtnav-ease) forwards;}
+.dtnav-menu.is-open .dtnav-menu__bar{transform:translateY(-12px);animation-duration:.6s;animation-delay:.04s;}
+.dtnav-menu.is-open .dtnav-menu__item{transform:translateY(24px);}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(1){animation-delay:.12s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(2){animation-delay:.19s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(3){animation-delay:.26s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(4){animation-delay:.33s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(5){animation-delay:.40s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(6){animation-delay:.47s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(7){animation-delay:.54s;}
+.dtnav-menu.is-open .dtnav-menu__item:nth-child(8){animation-delay:.61s;}
+.dtnav-menu.is-open .dtnav-menu__foot{transform:translateY(20px);animation-delay:.52s;}
+@keyframes dtnavItem{to{opacity:1;transform:none;}}
+
+.dtnav-menu__foot{flex:none;display:flex;flex-direction:column;gap:.9rem;margin-top:clamp(1.3rem,4.5vh,2.2rem);}
+.dtnav-menu__cta{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;align-self:stretch;
+  font-family:var(--dtnav-font-sans);font-size:.98rem;font-weight:500;letter-spacing:-.01em;
+  color:#fff;background:var(--dtnav-text);text-decoration:none;
+  padding:1.05rem 1.7rem;border-radius:999px;
+  box-shadow:0 18px 38px -22px rgba(17,17,17,.8);
+  transition:background .45s var(--dtnav-ease),transform .45s var(--dtnav-ease),box-shadow .45s var(--dtnav-ease);}
+.dtnav-menu__cta span{transition:transform .5s var(--dtnav-ease);}
+.dtnav-menu__cta:hover,.dtnav-menu__cta:focus-visible{background:#2a2a2a;}
+.dtnav-menu__cta:hover span,.dtnav-menu__cta:focus-visible span{transform:translateX(4px);}
+.dtnav-menu__cta:active{transform:scale(.985);box-shadow:0 10px 22px -18px rgba(17,17,17,.8);}
+@media(min-width:900px){.dtnav-menu{display:none !important;}}
+
+/* il contorno da tastiera resta scuro anche sul pulsante nero: currentColor
+   li' sarebbe bianco, e sulla pagina bianca non si vedrebbe */
+.dtnav a:focus-visible,.dtnav button:focus-visible{
+  outline:2px solid var(--dtnav-ink);outline-offset:3px;border-radius:4px;}
+.dtnav-menu a:focus-visible,.dtnav-menu button:focus-visible{
+  outline:2px solid var(--dtnav-text);outline-offset:3px;border-radius:4px;}
+
+@media(prefers-reduced-motion:reduce){
+  .dtnav>*,.dtnav-menu .dtnav-menu__bar,.dtnav-menu .dtnav-menu__item,.dtnav-menu .dtnav-menu__foot{
+    animation:none !important;opacity:1 !important;transform:none !important;}
+  .dtnav-menu,.dtnav__sub,.dtnav-menu__sub,.dtnav-menu__sublink{transition:none !important;}
+  .dtnav-menu__sublink{opacity:1;transform:none;}
+  .dtnav__cart,.dtnav__cart::after,.dtnav__cart .dtnav__cart-n{animation:none !important;}
+}
+CSS;
+}
+}
+
+if (!function_exists('tdtnav_js')) {
+function tdtnav_js() {
+	return <<<'JS'
+(function(){
+  /* ---------------- pannello del telefono ---------------- */
+  var toggle=document.getElementById("dtnav-toggle");
+  var closeBtn=document.getElementById("dtnav-close");
+  var menu=document.getElementById("dtnav-mobile");
+  if(toggle&&menu&&!menu.getAttribute("data-dt-init")){
+    menu.setAttribute("data-dt-init","1");
+    var openState=false;
+
+    var openMenu=function(){
+      if(openState)return; openState=true;
+      menu.hidden=false; void menu.offsetWidth;
+      menu.classList.add("is-open");
+      document.documentElement.classList.add("dtnav-open");
+      toggle.setAttribute("aria-expanded","true");
+      if(closeBtn)closeBtn.focus();
+    };
+    var closeMenu=function(){
+      if(!openState)return; openState=false;
+      menu.classList.remove("is-open");
+      document.documentElement.classList.remove("dtnav-open");
+      toggle.setAttribute("aria-expanded","false");
+      var done=function(){ if(!openState)menu.hidden=true; menu.removeEventListener("transitionend",done); };
+      menu.addEventListener("transitionend",done);
+      setTimeout(function(){ if(!openState)menu.hidden=true; },600);
+      toggle.focus();
+    };
+
+    toggle.addEventListener("click",openMenu);
+    if(closeBtn)closeBtn.addEventListener("click",closeMenu);
+    var chiudi=menu.querySelectorAll("[data-dtnav-close]");
+    for(var i=0;i<chiudi.length;i++){ chiudi[i].addEventListener("click",closeMenu); }
+
+    /* accordion: tocco su una voce con figli apre/chiude il sottomenu */
+    var tasti=menu.querySelectorAll(".dtnav-menu__toggle");
+    for(var k=0;k<tasti.length;k++){
+      (function(btn){
+        btn.addEventListener("click",function(){
+          var li=btn.closest?btn.closest(".dtnav-menu__item--has"):btn.parentNode;
+          if(!li)return;
+          var aperto=li.classList.toggle("is-expanded");
+          btn.setAttribute("aria-expanded",aperto?"true":"false");
+        });
+      })(tasti[k]);
+    }
+
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&openState)closeMenu(); });
+  }
+
+  /* ---------------- barra bianca quando si scorre ----------------
+     Il segno "data-tdt-barra" e' lo stesso che usava il vecchio frammento
+     tdt-menu-barra: se per un po' restano attivi tutti e due, il secondo
+     vede il segno e lascia fare al primo. */
+  var barra=document.querySelector("header.dtnav")||document.querySelector(".dtnav");
+  if(barra&&!barra.getAttribute("data-tdt-barra")){
+    barra.setAttribute("data-tdt-barra","1");
+    var acceso=null,inCoda=false;
+    var guarda=function(){
+      inCoda=false;
+      var y=window.pageYOffset||document.documentElement.scrollTop||0;
+      var deve=y>8;                    /* dopo 8 px di scorrimento */
+      /* si tocca la pagina solo quando lo stato cambia davvero: durante
+         uno scorrimento lungo sarebbero centinaia di scritture inutili */
+      if(deve===acceso)return;
+      acceso=deve;
+      if(deve)barra.classList.add("dtnav--barra");
+      else barra.classList.remove("dtnav--barra");
+    };
+    /* il conto si fa una volta per fotogramma, non a ogni scatto della
+       rotellina: cosi' lo scorrimento resta liscio */
+    var chiedi=function(){
+      if(inCoda)return;
+      inCoda=true;
+      window.requestAnimationFrame(guarda);
+    };
+    window.addEventListener("scroll",chiedi,{passive:true});
+    window.addEventListener("resize",chiedi,{passive:true});
+    window.addEventListener("load",guarda);
+    guarda();                          /* pagina riaperta gia' scorsa */
+  }
+
+  /* ---------------- icona del carrello ----------------
+     Il numero si accende appena si clicca "aggiungi al carrello" e poi
+     viene confermato dal server. Vedi il commento al punto 5 del PHP. */
+  var CFG=window.DTNAV_CART||{};
+  var cart=document.querySelector(".dtnav__cart");
+  if(!cart||cart.getAttribute("data-dt-cart"))return;
+  cart.setAttribute("data-dt-cart","1");
+
+  function pallino(){ return cart.querySelector(".dtnav__cart-n"); }
+  function leggi(){
+    var b=pallino();
+    if(!b)return 0;
+    var n=parseInt(b.getAttribute("data-count"),10);
+    return isNaN(n)?0:n;
+  }
+
+  var nodo=pallino();      /* serve a capire se Woo ha rimpiazzato il pallino */
+  var ultimo=leggi();
+  var attesa=null;
+  var risposto=false;
+
+  function lampo(){
+    cart.classList.remove("is-pop");
+    void cart.offsetWidth;            /* riavvia l-animazione anche a meta- corsa */
+    cart.classList.add("is-pop");
+    clearTimeout(cart._pop);
+    cart._pop=setTimeout(function(){ cart.classList.remove("is-pop"); },900);
+  }
+
+  function scrivi(n,accendi){
+    n=n<0?0:n;
+    var b=pallino();
+    if(b){
+      b.setAttribute("data-count",n);
+      b.textContent=n>99?"99+":String(n);   /* testo, mai HTML */
+      nodo=b;
+    }
+    if(n>0)cart.classList.add("is-full"); else cart.classList.remove("is-full");
+    cart.setAttribute("aria-label",n===1?"Carrello, 1 articolo":"Carrello, "+n+" articoli");
+    var sr=cart.querySelector(".dtnav__cart-sr");
+    if(sr)sr.textContent=n===0?"":(n===1?"1 articolo nel carrello":n+" articoli nel carrello");
+    ultimo=n;
+    if(accendi)lampo();
+  }
+
+  /* Il numero vero, chiesto al negozio: rete di sicurezza quando i
+     frammenti di WooCommerce non ci sono o la pagina viene dalla cache. */
+  function dalServer(){
+    if(!window.fetch||!CFG.cart)return;
+    window.fetch(CFG.cart,{credentials:"same-origin",headers:{"Accept":"application/json"}})
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){
+        if(!j||typeof j.items_count!=="number")return;
+        risposto=true;
+        if(j.items_count!==ultimo)scrivi(j.items_count,j.items_count>ultimo);
+      })["catch"](function(){});
+  }
+
+  /* a) il numero sale subito, senza aspettare la risposta */
+  document.addEventListener("click",function(e){
+    var b=e.target&&e.target.closest?
+      e.target.closest(".add_to_cart_button,.ajax_add_to_cart,.single_add_to_cart_button"):null;
+    if(!b||!b.classList)return;
+    if(b.classList.contains("disabled")||b.classList.contains("wc-variation-selection-needed"))return;
+    var q=1;
+    var form=b.closest?b.closest("form.cart"):null;
+    var input=form?form.querySelector("input.qty"):null;
+    if(input&&input.value)q=parseInt(input.value,10)||1;
+    else if(b.getAttribute("data-quantity"))q=parseInt(b.getAttribute("data-quantity"),10)||1;
+    if(!q||q<1)q=1;
+    scrivi(ultimo+q,true);
+    clearTimeout(attesa);
+    attesa=setTimeout(dalServer,2200);
+  },true);
+
+  /* b) il numero del server arriva con i frammenti di WooCommerce.
+        Il controllo si fa al giro dopo, perche' il pallino viene
+        rimpiazzato da un altro ascoltatore dello stesso evento.
+        "updated_wc_div" lo manda la pagina carrello nostra (tdt-carrello):
+        li' i frammenti non passano, quindi si chiede il numero al negozio. */
+  if(window.jQuery){
+    window.jQuery(document.body).on(
+      "added_to_cart removed_from_cart wc_fragments_refreshed wc_fragments_loaded updated_cart_totals updated_wc_div",
+      function(){
+        setTimeout(function(){
+          var b=pallino();
+          if(b&&b!==nodo){             /* il frammento ha portato il numero vero */
+            nodo=b;
+            risposto=true;
+            clearTimeout(attesa);
+            var n=leggi();
+            if(n!==ultimo)scrivi(n,n>ultimo); else ultimo=n;
+            return;
+          }
+          clearTimeout(attesa);        /* nessun frammento: lo chiediamo noi */
+          attesa=setTimeout(dalServer,150);
+        },0);
+      }
+    );
+  }
+
+  /* c) pagina servita dalla cache con un carrello gia' pieno */
+  setTimeout(function(){
+    if(risposto||ultimo>0)return;
+    if(!/wp_woocommerce_session_|woocommerce_items_in_cart/.test(document.cookie))return;
+    dalServer();
+  },1500);
+  window.addEventListener("pageshow",function(e){ if(e.persisted)dalServer(); });
+})();
+JS;
+}
+}
