@@ -280,5 +280,449 @@
   "fr": "1 article dans votre panier",
   "de": "1 Artikel im Warenkorb",
   "es": "1 artículo en el carrito"
+ },
+ "Il tuo vantaggio": {
+  "en": "Your benefit",
+  "fr": "Votre avantage",
+  "de": "Dein Vorteil",
+  "es": "Tu ventaja"
+ },
+ "Sul tuo primo ordine: si applica da solo in cassa.": {
+  "en": "On your first order: applied automatically at checkout.",
+  "fr": "Sur votre première commande : appliquée automatiquement au paiement.",
+  "de": "Auf deine erste Bestellung: wird an der Kasse automatisch abgezogen.",
+  "es": "En tu primer pedido: se aplica automáticamente al pagar."
+ },
+ "Hai ricevuto un invito: registrandoti, chi ti ha invitato riceve un bonus del {n}%.": {
+  "en": "You've been invited: when you sign up, the person who invited you gets a {n}% bonus.",
+  "fr": "Vous avez reçu une invitation : en vous inscrivant, la personne qui vous a invité reçoit un bonus de {n} %.",
+  "de": "Du wurdest eingeladen: Wenn du dich registrierst, erhält die Person, die dich eingeladen hat, einen Bonus von {n} %.",
+  "es": "Has recibido una invitación: al registrarte, quien te invitó recibe un bono del {n} %."
+ },
+ "Conferma password": {
+  "en": "Confirm password",
+  "fr": "Confirmez le mot de passe",
+  "de": "Passwort bestätigen",
+  "es": "Confirma la contraseña"
+ },
+ "Codice amico": {
+  "en": "Friend code",
+  "fr": "Code ami",
+  "de": "Freundescode",
+  "es": "Código de amigo"
+ },
+ "(facoltativo)": {
+  "en": "(optional)",
+  "fr": "(facultatif)",
+  "de": "(optional)",
+  "es": "(opcional)"
+ },
+ "Chi ti ha dato il codice riceve un bonus del {n}% appena ti registri.": {
+  "en": "Whoever gave you the code gets a {n}% bonus as soon as you sign up.",
+  "fr": "La personne qui vous a donné le code reçoit un bonus de {n} % dès votre inscription.",
+  "de": "Wer dir den Code gegeben hat, erhält einen Bonus von {n} %, sobald du dich registrierst.",
+  "es": "Quien te dio el código recibe un bono del {n} % en cuanto te registras."
+ },
+ "Ho letto e accetto la <a href=\"{1}\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a> e i <a href=\"{2}\" target=\"_blank\" rel=\"noopener\">Termini e condizioni</a>.&nbsp;<span class=\"required\" aria-hidden=\"true\">*</span>": {
+  "en": "I have read and accept the <a href=\"{1}\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a> and the <a href=\"{2}\" target=\"_blank\" rel=\"noopener\">Terms and conditions</a>.&nbsp;<span class=\"required\" aria-hidden=\"true\">*</span>",
+  "fr": "J'ai lu et j'accepte la <a href=\"{1}\" target=\"_blank\" rel=\"noopener\">Politique de confidentialité</a> et les <a href=\"{2}\" target=\"_blank\" rel=\"noopener\">Conditions générales</a>.&nbsp;<span class=\"required\" aria-hidden=\"true\">*</span>",
+  "de": "Ich habe die <a href=\"{1}\" target=\"_blank\" rel=\"noopener\">Datenschutzerklärung</a> und die <a href=\"{2}\" target=\"_blank\" rel=\"noopener\">AGB</a> gelesen und akzeptiere sie.&nbsp;<span class=\"required\" aria-hidden=\"true\">*</span>",
+  "es": "He leído y acepto la <a href=\"{1}\" target=\"_blank\" rel=\"noopener\">Política de privacidad</a> y los <a href=\"{2}\" target=\"_blank\" rel=\"noopener\">Términos y condiciones</a>.&nbsp;<span class=\"required\" aria-hidden=\"true\">*</span>"
+ },
+ "Password": {
+  "en": "Password",
+  "fr": "Mot de passe",
+  "de": "Passwort",
+  "es": "Contraseña"
+ },
+ "Lo sconto del primo ordine è riservato a chi ha un account: accedi o registrati.": {
+  "en": "The first-order discount is for account holders only: sign in or register.",
+  "fr": "La remise sur la première commande est réservée aux titulaires d'un compte : connectez-vous ou inscrivez-vous.",
+  "de": "Der Rabatt auf die erste Bestellung gilt nur mit Konto: Melde dich an oder registriere dich.",
+  "es": "El descuento del primer pedido es solo para quien tiene cuenta: inicia sesión o regístrate."
+ },
+ "Lo sconto per chi si registra vale sul primo ordine, e l’hai già usato.": {
+  "en": "The sign-up discount applies to your first order, and you've already used it.",
+  "fr": "La remise d'inscription s'applique à votre première commande, et vous l'avez déjà utilisée.",
+  "de": "Der Anmelderabatt gilt für die erste Bestellung, und du hast ihn bereits genutzt.",
+  "es": "El descuento por registrarte vale para el primer pedido, y ya lo has usado."
+ },
+ "Questo bonus appartiene a un altro account.": {
+  "en": "This bonus belongs to another account.",
+  "fr": "Ce bonus appartient à un autre compte.",
+  "de": "Dieser Bonus gehört zu einem anderen Konto.",
+  "es": "Este bono pertenece a otra cuenta."
+ },
+ "Puoi usare un solo bonus amico per ordine: gli altri restano per i prossimi.": {
+  "en": "You can use only one friend bonus per order: the others stay for your next orders.",
+  "fr": "Vous ne pouvez utiliser qu'un seul bonus ami par commande : les autres restent pour les suivantes.",
+  "de": "Du kannst pro Bestellung nur einen Freundesbonus nutzen: Die anderen bleiben für die nächsten.",
+  "es": "Solo puedes usar un bono de amigo por pedido: los demás quedan para los siguientes."
+ },
+ "Sconto primo ordine −{n}%": {
+  "en": "First-order discount −{n}%",
+  "fr": "Remise première commande −{n} %",
+  "de": "Erstbestellungsrabatt −{n} %",
+  "es": "Descuento primer pedido −{n} %"
+ },
+ "Bonus amico −{n}%": {
+  "en": "Friend bonus −{n}%",
+  "fr": "Bonus ami −{n} %",
+  "de": "Freundesbonus −{n} %",
+  "es": "Bono amigo −{n} %"
+ },
+ "Bonus benvenuto −{n}%": {
+  "en": "Welcome bonus −{n}%",
+  "fr": "Bonus de bienvenue −{n} %",
+  "de": "Willkommensbonus −{n} %",
+  "es": "Bono de bienvenida −{n} %"
+ },
+ "Accedi o crea il tuo account": {
+  "en": "Sign in or create your account",
+  "fr": "Connectez-vous ou créez votre compte",
+  "de": "Melde dich an oder erstelle dein Konto",
+  "es": "Inicia sesión o crea tu cuenta"
+ },
+ "Con un account hai il {n}% sul primo ordine e un link personale per invitare i tuoi amici: per ognuno che si registra, un bonus del {n}% per te.": {
+  "en": "With an account you get {n}% off your first order and a personal link to invite your friends: for each one who signs up, a {n}% bonus for you.",
+  "fr": "Avec un compte, vous avez {n} % sur votre première commande et un lien personnel pour inviter vos amis : pour chaque inscription, un bonus de {n} % pour vous.",
+  "de": "Mit einem Konto erhältst du {n} % auf deine erste Bestellung und einen persönlichen Link, um deine Freunde einzuladen: Für jeden, der sich registriert, gibt es einen Bonus von {n} % für dich.",
+  "es": "Con una cuenta tienes un {n} % en tu primer pedido y un enlace personal para invitar a tus amigos: por cada uno que se registre, un bono del {n} % para ti."
+ },
+ "Password dimenticata?": {
+  "en": "Lost your password?",
+  "fr": "Mot de passe oublié ?",
+  "de": "Passwort vergessen?",
+  "es": "¿Has olvidado tu contraseña?"
+ },
+ "Scegli una nuova password": {
+  "en": "Choose a new password",
+  "fr": "Choisissez un nouveau mot de passe",
+  "de": "Wähle ein neues Passwort",
+  "es": "Elige una nueva contraseña"
+ },
+ "Ciao, {1}": {
+  "en": "Hi, {1}",
+  "fr": "Bonjour, {1}",
+  "de": "Hallo, {1}",
+  "es": "Hola, {1}"
+ },
+ "Ciao!": {
+  "en": "Hi!",
+  "fr": "Bonjour !",
+  "de": "Hallo!",
+  "es": "¡Hola!"
+ },
+ "Benvenuto in The Double Twenty.": {
+  "en": "Welcome to The Double Twenty.",
+  "fr": "Bienvenue chez The Double Twenty.",
+  "de": "Willkommen bei The Double Twenty.",
+  "es": "Bienvenido a The Double Twenty."
+ },
+ "Il tuo sconto del {n}% sul primo ordine è attivo: si applica da solo in cassa.": {
+  "en": "Your {n}% first-order discount is active: it's applied automatically at checkout.",
+  "fr": "Votre remise de {n} % sur la première commande est active : elle s'applique automatiquement au paiement.",
+  "de": "Dein Rabatt von {n} % auf die erste Bestellung ist aktiv: Er wird an der Kasse automatisch abgezogen.",
+  "es": "Tu descuento del {n} % en el primer pedido está activo: se aplica automáticamente al pagar."
+ },
+ "Il tuo account è pronto.": {
+  "en": "Your account is ready.",
+  "fr": "Votre compte est prêt.",
+  "de": "Dein Konto ist bereit.",
+  "es": "Tu cuenta está lista."
+ },
+ "<span class=\"tdta-stato is-on\">Disponibile</span>{1}": {
+  "en": "<span class=\"tdta-stato is-on\">Available</span>{1}",
+  "fr": "<span class=\"tdta-stato is-on\">Disponible</span>{1}",
+  "de": "<span class=\"tdta-stato is-on\">Verfügbar</span>{1}",
+  "es": "<span class=\"tdta-stato is-on\">Disponible</span>{1}"
+ },
+ "Bonus di benvenuto, sul tuo primo ordine": {
+  "en": "Welcome bonus, on your first order",
+  "fr": "Bonus de bienvenue, sur votre première commande",
+  "de": "Willkommensbonus, auf deine erste Bestellung",
+  "es": "Bono de bienvenida, en tu primer pedido"
+ },
+ "1 amico registrato": {
+  "en": "1 friend signed up",
+  "fr": "1 ami inscrit",
+  "de": "1 Freund registriert",
+  "es": "1 amigo registrado"
+ },
+ "{n} amici registrati": {
+  "en": "{n} friends signed up",
+  "fr": "{n} amis inscrits",
+  "de": "{n} Freunde registriert",
+  "es": "{n} amigos registrados"
+ },
+ "1 amico registrato · {n} bonus, uno per ordine": {
+  "en": "1 friend signed up · {n} bonuses, one per order",
+  "fr": "1 ami inscrit · {n} bonus, un par commande",
+  "de": "1 Freund registriert · {n} Boni, einer pro Bestellung",
+  "es": "1 amigo registrado · {n} bonos, uno por pedido"
+ },
+ "{n} amici registrati · {n} bonus, uno per ordine": {
+  "en": "{n} friends signed up · {n} bonuses, one per order",
+  "fr": "{n} amis inscrits · {n} bonus, un par commande",
+  "de": "{n} Freunde registriert · {n} Boni, einer pro Bestellung",
+  "es": "{n} amigos registrados · {n} bonos, uno por pedido"
+ },
+ "1 amico registrato · arriva con il suo primo ordine": {
+  "en": "1 friend signed up · arrives with their first order",
+  "fr": "1 ami inscrit · arrive avec sa première commande",
+  "de": "1 Freund registriert · kommt mit seiner ersten Bestellung",
+  "es": "1 amigo registrado · llega con su primer pedido"
+ },
+ "{n} amici registrati · arriva con il suo primo ordine": {
+  "en": "{n} friends signed up · arrives with their first order",
+  "fr": "{n} amis inscrits · arrive avec leur première commande",
+  "de": "{n} Freunde registriert · kommt mit ihrer ersten Bestellung",
+  "es": "{n} amigos registrados · llega con su primer pedido"
+ },
+ "In arrivo": {
+  "en": "On its way",
+  "fr": "En cours",
+  "de": "Unterwegs",
+  "es": "En camino"
+ },
+ "Da sbloccare": {
+  "en": "To unlock",
+  "fr": "À débloquer",
+  "de": "Noch freizuschalten",
+  "es": "Por desbloquear"
+ },
+ "Invita un amico qui sotto": {
+  "en": "Invite a friend below",
+  "fr": "Invitez un ami ci-dessous",
+  "de": "Lade unten einen Freund ein",
+  "es": "Invita a un amigo aquí abajo"
+ },
+ "I tuoi vantaggi": {
+  "en": "Your benefits",
+  "fr": "Vos avantages",
+  "de": "Deine Vorteile",
+  "es": "Tus ventajas"
+ },
+ "Sconto primo ordine": {
+  "en": "First-order discount",
+  "fr": "Remise première commande",
+  "de": "Erstbestellungsrabatt",
+  "es": "Descuento primer pedido"
+ },
+ "Attivo": {
+  "en": "Active",
+  "fr": "Actif",
+  "de": "Aktiv",
+  "es": "Activo"
+ },
+ "Usato": {
+  "en": "Used",
+  "fr": "Utilisé",
+  "de": "Genutzt",
+  "es": "Usado"
+ },
+ "sul tuo primo ordine": {
+  "en": "on your first order",
+  "fr": "sur votre première commande",
+  "de": "auf deine erste Bestellung",
+  "es": "en tu primer pedido"
+ },
+ "Bonus referral": {
+  "en": "Referral bonus",
+  "fr": "Bonus parrainage",
+  "de": "Empfehlungsbonus",
+  "es": "Bono por referido"
+ },
+ "sul prossimo ordine": {
+  "en": "on your next order",
+  "fr": "sur votre prochaine commande",
+  "de": "auf deine nächste Bestellung",
+  "es": "en tu próximo pedido"
+ },
+ "Per ora nessuno": {
+  "en": "None for now",
+  "fr": "Aucun pour l'instant",
+  "de": "Vorerst keine",
+  "es": "Ninguna por ahora"
+ },
+ "invita un amico: {n}% per ognuno": {
+  "en": "invite a friend: {n}% for each one",
+  "fr": "invitez un ami : {n} % pour chacun",
+  "de": "lade einen Freund ein: {n} % für jeden",
+  "es": "invita a un amigo: {n} % por cada uno"
+ },
+ "Invita un amico": {
+  "en": "Invite a friend",
+  "fr": "Invitez un ami",
+  "de": "Lade einen Freund ein",
+  "es": "Invita a un amigo"
+ },
+ "Condividi il tuo link personale": {
+  "en": "Share your personal link",
+  "fr": "Partagez votre lien personnel",
+  "de": "Teile deinen persönlichen Link",
+  "es": "Comparte tu enlace personal"
+ },
+ "Per ogni amico che si registra con il tuo link ricevi subito un bonus del {n}% da usare su un ordine. Il tuo amico, come tutti i nuovi iscritti, ha il {n}% sul primo ordine.": {
+  "en": "For every friend who signs up with your link you instantly get a {n}% bonus to use on an order. Your friend, like all new members, gets {n}% off their first order.",
+  "fr": "Pour chaque ami qui s'inscrit avec votre lien, vous recevez aussitôt un bonus de {n} % à utiliser sur une commande. Votre ami, comme tous les nouveaux inscrits, bénéficie de {n} % sur sa première commande.",
+  "de": "Für jeden Freund, der sich über deinen Link registriert, erhältst du sofort einen Bonus von {n} % für eine Bestellung. Dein Freund erhält wie alle neuen Mitglieder {n} % auf seine erste Bestellung.",
+  "es": "Por cada amigo que se registre con tu enlace recibes al instante un bono del {n} % para usar en un pedido. Tu amigo, como todos los nuevos miembros, tiene un {n} % en su primer pedido."
+ },
+ "Il tuo link personale": {
+  "en": "Your personal link",
+  "fr": "Votre lien personnel",
+  "de": "Dein persönlicher Link",
+  "es": "Tu enlace personal"
+ },
+ "Copia link": {
+  "en": "Copy link",
+  "fr": "Copier le lien",
+  "de": "Link kopieren",
+  "es": "Copiar enlace"
+ },
+ "Condividi": {
+  "en": "Share",
+  "fr": "Partager",
+  "de": "Teilen",
+  "es": "Compartir"
+ },
+ "Oppure dagli il tuo codice": {
+  "en": "Or give them your code",
+  "fr": "Ou donnez-lui votre code",
+  "de": "Oder gib ihm deinen Code",
+  "es": "O dale tu código"
+ },
+ "Copia il codice": {
+  "en": "Copy the code",
+  "fr": "Copier le code",
+  "de": "Code kopieren",
+  "es": "Copiar el código"
+ },
+ "Link copiato ✓": {
+  "en": "Link copied ✓",
+  "fr": "Lien copié ✓",
+  "de": "Link kopiert ✓",
+  "es": "Enlace copiado ✓"
+ },
+ "Codice copiato ✓": {
+  "en": "Code copied ✓",
+  "fr": "Code copié ✓",
+  "de": "Code kopiert ✓",
+  "es": "Código copiado ✓"
+ },
+ "Copia non riuscita: tieni premuto sul link": {
+  "en": "Copy failed: press and hold the link",
+  "fr": "Échec de la copie : maintenez le doigt sur le lien",
+  "de": "Kopieren fehlgeschlagen: Halte den Link gedrückt",
+  "es": "No se pudo copiar: mantén pulsado el enlace"
+ },
+ "I tuoi risultati": {
+  "en": "Your results",
+  "fr": "Vos résultats",
+  "de": "Deine Ergebnisse",
+  "es": "Tus resultados"
+ },
+ "Amici invitati": {
+  "en": "Friends invited",
+  "fr": "Amis invités",
+  "de": "Eingeladene Freunde",
+  "es": "Amigos invitados"
+ },
+ "Registrazioni": {
+  "en": "Sign-ups",
+  "fr": "Inscriptions",
+  "de": "Registrierungen",
+  "es": "Registros"
+ },
+ "Bonus ottenuti": {
+  "en": "Bonuses earned",
+  "fr": "Bonus obtenus",
+  "de": "Erhaltene Boni",
+  "es": "Bonos obtenidos"
+ },
+ "Ti consiglio The Double Twenty: registrati con il mio link, oppure con il mio codice {1}, e avrai il {n}% di sconto sul primo ordine.": {
+  "en": "I recommend The Double Twenty: sign up with my link, or with my code {1}, and you'll get {n}% off your first order.",
+  "fr": "Je te recommande The Double Twenty : inscris-toi avec mon lien, ou avec mon code {1}, et tu auras {n} % de réduction sur ta première commande.",
+  "de": "Ich empfehle dir The Double Twenty: Registriere dich über meinen Link oder mit meinem Code {1}, dann bekommst du {n} % Rabatt auf deine erste Bestellung.",
+  "es": "Te recomiendo The Double Twenty: regístrate con mi enlace, o con mi código {1}, y tendrás un {n} % de descuento en tu primer pedido."
+ },
+ "Sconto per chi si registra": {
+  "en": "Sign-up discount",
+  "fr": "Remise à l'inscription",
+  "de": "Rabatt bei Registrierung",
+  "es": "Descuento por registrarte"
+ },
+ "Registrati e risparmi un ulteriore {n}% sul primo ordine": {
+  "en": "Sign up and save an extra {n}% on your first order",
+  "fr": "Inscrivez-vous et économisez {n} % de plus sur votre première commande",
+  "de": "Registriere dich und spare zusätzlich {n} % auf deine erste Bestellung",
+  "es": "Regístrate y ahorra un {n} % adicional en tu primer pedido"
+ },
+ "Si aggiunge agli sconti del carrello, già su questo ordine.": {
+  "en": "It adds to the cart discounts, already on this order.",
+  "fr": "Elle s'ajoute aux remises du panier, dès cette commande.",
+  "de": "Er kommt zu den Rabatten im Warenkorb hinzu, schon bei dieser Bestellung.",
+  "es": "Se suma a los descuentos del carrito, ya en este pedido."
+ },
+ "Crea il tuo account": {
+  "en": "Create your account",
+  "fr": "Créez votre compte",
+  "de": "Erstelle dein Konto",
+  "es": "Crea tu cuenta"
+ },
+ "Hai già un account?": {
+  "en": "Already have an account?",
+  "fr": "Vous avez déjà un compte ?",
+  "de": "Du hast schon ein Konto?",
+  "es": "¿Ya tienes una cuenta?"
+ },
+ "Accedi": {
+  "en": "Sign in",
+  "fr": "Se connecter",
+  "de": "Anmelden",
+  "es": "Iniciar sesión"
+ },
+ "Registrati e ottieni un ulteriore <b>{n}% di sconto</b> sul primo ordine": {
+  "en": "Sign up and get an extra <b>{n}% off</b> your first order",
+  "fr": "Inscrivez-vous et obtenez <b>{n} % de réduction</b> en plus sur votre première commande",
+  "de": "Registriere dich und erhalte zusätzlich <b>{n} % Rabatt</b> auf deine erste Bestellung",
+  "es": "Regístrate y consigue un <b>{n} % de descuento</b> adicional en tu primer pedido"
+ },
+ "Crea il tuo account gratuito: il {n}% si somma agli altri sconti.": {
+  "en": "Create your free account: the {n}% adds to the other discounts.",
+  "fr": "Créez votre compte gratuit : les {n} % s'ajoutent aux autres remises.",
+  "de": "Erstelle dein kostenloses Konto: Die {n} % kommen zu den anderen Rabatten hinzu.",
+  "es": "Crea tu cuenta gratuita: el {n} % se suma a los demás descuentos."
+ },
+ "<strong>Nome</strong>: scrivi il tuo nome.": {
+  "en": "<strong>First name</strong>: enter your first name.",
+  "fr": "<strong>Prénom</strong> : indiquez votre prénom.",
+  "de": "<strong>Vorname</strong>: Gib deinen Vornamen ein.",
+  "es": "<strong>Nombre</strong>: escribe tu nombre."
+ },
+ "<strong>Cognome</strong>: scrivi il tuo cognome.": {
+  "en": "<strong>Last name</strong>: enter your last name.",
+  "fr": "<strong>Nom</strong> : indiquez votre nom.",
+  "de": "<strong>Nachname</strong>: Gib deinen Nachnamen ein.",
+  "es": "<strong>Apellidos</strong>: escribe tus apellidos."
+ },
+ "<strong>Password</strong>: le due password non coincidono.": {
+  "en": "<strong>Password</strong>: the two passwords don't match.",
+  "fr": "<strong>Mot de passe</strong> : les deux mots de passe ne correspondent pas.",
+  "de": "<strong>Passwort</strong>: Die beiden Passwörter stimmen nicht überein.",
+  "es": "<strong>Contraseña</strong>: las dos contraseñas no coinciden."
+ },
+ "<strong>Codice amico</strong>: «{1}» non esiste. Controllalo, oppure lascia vuoto il campo.": {
+  "en": "<strong>Friend code</strong>: “{1}” doesn't exist. Check it, or leave the field blank.",
+  "fr": "<strong>Code ami</strong> : « {1} » n'existe pas. Vérifiez-le ou laissez le champ vide.",
+  "de": "<strong>Freundescode</strong>: „{1}“ existiert nicht. Prüfe ihn oder lass das Feld leer.",
+  "es": "<strong>Código de amigo</strong>: «{1}» no existe. Revísalo o deja el campo vacío."
+ },
+ "Per creare l’account accetta la <strong>Privacy Policy</strong> e i <strong>Termini e condizioni</strong>.": {
+  "en": "To create your account, accept the <strong>Privacy Policy</strong> and the <strong>Terms and conditions</strong>.",
+  "fr": "Pour créer votre compte, acceptez la <strong>Politique de confidentialité</strong> et les <strong>Conditions générales</strong>.",
+  "de": "Um dein Konto zu erstellen, akzeptiere die <strong>Datenschutzerklärung</strong> und die <strong>AGB</strong>.",
+  "es": "Para crear tu cuenta, acepta la <strong>Política de privacidad</strong> y los <strong>Términos y condiciones</strong>."
  }
 }
