@@ -1,0 +1,1547 @@
+<?php
+/**
+ * ============================================================
+ * THE DOUBLE TWENTY — SEO IN OGNI LINGUA + LINGUA DEL PAESE
+ * ------------------------------------------------------------
+ * >>> INCOLLANDO IN WPCODE / CODE SNIPPETS: NON COPIARE LA PRIMA RIGA
+ * >>> DEL FILE, quella con il tag di apertura PHP: quei plugin fanno
+ * >>> girare il codice gia' in modalita' PHP e con il tag dentro danno
+ * >>> "syntax error". Nella stessa cartella c'e' il file gia' pronto
+ * >>> senza tag: tdt-seo-lingue-DA-INCOLLARE.txt
+ * >>> Tipo di codice: PHP Snippet. Inserimento: ovunque (Run Everywhere).
+ *
+ * Lavora insieme al plugin TDT Lingue (che resta com'e'). Senza il plugin
+ * attivo non fa niente: gli indirizzi /en/ /fr/ /de/ /es/ tornano alla
+ * pagina italiana.
+ *
+ * PERCHE'
+ *   TDT Lingue traduce nel browser, sullo stesso indirizzo: per Google il
+ *   sito esisteva in una lingua sola, l'italiano. Chi cercava in tedesco
+ *   "Nackenkissen Memory Foam" non poteva trovare la pagina tedesca,
+ *   perche' non aveva un indirizzo suo.
+ *
+ * COSA FA
+ *   1. OGNI LINGUA HA I SUOI INDIRIZZI
+ *        thedoubletwenty.it/negozio/       italiano (come sempre)
+ *        thedoubletwenty.it/en/negozio/    inglese
+ *        thedoubletwenty.it/fr/negozio/    francese
+ *        thedoubletwenty.it/de/negozio/    tedesco
+ *        thedoubletwenty.it/es/negozio/    spagnolo
+ *      Non sono pagine da creare: e' la stessa pagina, che si apre gia'
+ *      nella lingua dell'indirizzo (la traduce TDT Lingue con i suoi
+ *      dizionari). Nel database non cambia niente.
+ *   2. PER GOOGLE (e Bing) ogni versione dice chi e':
+ *        - link hreflang verso tutte le lingue, piu' x-default (inglese);
+ *        - canonical, og:url, og:locale e lingua della pagina giusti;
+ *        - titolo gia' tradotto nel codice della pagina, con i dizionari
+ *          di TDT Lingue; meta description tradotta, oppure tolta se la
+ *          traduzione manca (Google scrive allora il riassunto dal testo
+ *          tradotto, invece di mostrarlo in italiano). Le frasi mancanti
+ *          compaiono in Impostazioni > TDT Lingue > Testi senza
+ *          traduzione: tradotte li', valgono anche per Google;
+ *        - i link interni restano nella lingua (/de/... porta a /de/...);
+ *        - la sitemap di tutte le lingue: /sitemap-lingue.xml, gia'
+ *          aggiunta all'indice delle sitemap di Yoast e a robots.txt.
+ *   3. LINGUA DEL PAESE: alla prima visita il sito si apre nella lingua
+ *      del paese da cui ci si collega: Germania, Austria -> tedesco;
+ *      Francia -> francese; Spagna e America Latina -> spagnolo; Regno
+ *      Unito, Irlanda, Stati Uniti... -> inglese; Italia -> italiano.
+ *      Svizzera, Belgio, Lussemburgo, Canada (piu' lingue): la lingua del
+ *      telefono/computer, se e' una di quelle del paese. Paesi senza una
+ *      lingua del sito (Olanda, Polonia...): la lingua del telefono se il
+ *      sito ce l'ha, altrimenti l'inglese.
+ *      Il paese lo dice l'indirizzo IP (la geolocalizzazione di
+ *      WooCommerce, fatta dal server); se non risponde, il fuso orario
+ *      del dispositivo. La lingua scelta dal selettore vince sempre e
+ *      resta per le visite successive. Google, Bing e le anteprime dei
+ *      link (WhatsApp, Facebook...) non vengono mai spostati.
+ *   4. IL SELETTORE DI TDT LINGUE porta all'indirizzo della lingua scelta.
+ *
+ * CARRELLO, PAGAMENTO, ACCOUNT restano agli indirizzi di sempre
+ * (/carrello/, /pagamento/, /mio-account/) e si traducono come prima con
+ * TDT Lingue: qui non si tocca niente di quello che riguarda soldi e
+ * ordini. Nutrex Lab e le pagine escluse in TDT Lingue restano solo in
+ * italiano, senza indirizzi /de/...
+ *
+ * CACHE DI SITEGROUND: ogni indirizzo e' una pagina a se' nella cache
+ * (/de/negozio/ non e' /negozio/), quindi nessuno vede la lingua di un
+ * altro visitatore. La scelta della lingua del paese si fa nel browser.
+ *
+ * DOPO AVERLO ATTIVATO: svuota la cache di SiteGround (Speed Optimizer ->
+ * Purge) e aggiungi https://thedoubletwenty.it/sitemap-lingue.xml in
+ * Google Search Console (Sitemap). Per provare la lingua del paese senza
+ * viaggiare: finestra in incognito e thedoubletwenty.it/?paese=DE (oppure
+ * FR, ES, GB, IT...). Anche una VPN va bene.
+ *
+ * Spegnendo il frammento il sito torna com'era: un indirizzo solo,
+ * traduzione nel browser.
+ * ============================================================
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/* =====================================================================
+ * IMPOSTAZIONI
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_config' ) ) {
+	function tdtseo_config() {
+		static $c = null;
+		if ( null === $c ) {
+			$c = (array) apply_filters(
+				'tdtseo_config',
+				array(
+					// la versione per chi cerca in una lingua che il sito non ha
+					'x_default' => 'en',
+					// alla prima visita il sito si apre nella lingua del paese
+					'auto'      => true,
+					// paese dall'indirizzo IP (WooCommerce). false: solo fuso orario e lingua del dispositivo
+					'geo_ip'    => true,
+					// nome della sitemap delle lingue
+					'sitemap'   => 'sitemap-lingue.xml',
+				)
+			);
+		}
+		return $c;
+	}
+}
+
+/* =====================================================================
+ * LINGUE E INDIRIZZI
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_lingue' ) ) {
+	/** Le lingue del sito, l'italiano per primo (quelle di TDT Lingue). */
+	function tdtseo_lingue() {
+		static $lingue = null;
+		if ( null !== $lingue ) {
+			return $lingue;
+		}
+		$l = function_exists( 'tdt_lingue_lingue' ) ? array_keys( (array) tdt_lingue_lingue() ) : array( 'it', 'en', 'fr', 'de', 'es' );
+		$lingue = array( 'it' );
+		foreach ( $l as $x ) {
+			if ( is_string( $x ) && preg_match( '/^[a-z]{2}$/', $x ) && ! in_array( $x, $lingue, true ) ) {
+				$lingue[] = $x;
+			}
+		}
+		return $lingue;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_locale' ) ) {
+	/** "de-DE" per <html lang>, "de_DE" per og:locale. */
+	function tdtseo_locale( $l, $og = false ) {
+		$m = array(
+			'it' => 'it-IT',
+			'en' => 'en-GB',
+			'fr' => 'fr-FR',
+			'de' => 'de-DE',
+			'es' => 'es-ES',
+		);
+		$v = isset( $m[ $l ] ) ? $m[ $l ] : $l;
+		return $og ? str_replace( '-', '_', $v ) : $v;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_base' ) ) {
+	/** Percorso del sito: "/" (o "/cartella/" se WordPress sta in una sottocartella). */
+	function tdtseo_base() {
+		static $b = null;
+		if ( null === $b ) {
+			$t = trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+			$b = '' === $t ? '/' : '/' . $t . '/';
+		}
+		return $b;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_origine' ) ) {
+	/** "https://thedoubletwenty.it" (dall'indirizzo del sito, mai dalla richiesta). */
+	function tdtseo_origine() {
+		return (string) preg_replace( '#^(https?://[^/]+).*$#i', '$1', home_url( '/' ) );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_lingua' ) ) {
+	/** La lingua dell'indirizzo di questa richiesta ("it" senza sigla). */
+	function tdtseo_lingua() {
+		return isset( $GLOBALS['tdtseo_lingua'] ) ? (string) $GLOBALS['tdtseo_lingua'] : 'it';
+	}
+}
+
+if ( ! function_exists( 'tdtseo_resto_escluso' ) ) {
+	/** Percorsi che non hanno mai la sigla della lingua: pannello, API, file, feed. */
+	function tdtseo_resto_escluso( $resto ) {
+		$resto = ltrim( (string) $resto, '/' );
+		$primo = strtolower( (string) current( explode( '/', $resto ) ) );
+		$mai   = array( 'wp-admin', 'wp-login.php', 'wp-json', 'wp-content', 'wp-includes', 'xmlrpc.php', 'wp-cron.php', 'wp-comments-post.php', 'wp-signup.php', 'wp-activate.php', 'wp-trackback.php', 'wp-links-opml.php', 'wp-sitemap.xml' );
+		if ( in_array( $primo, $mai, true ) ) {
+			return true;
+		}
+		// file (sitemap.xml, foto, pdf...) e feed
+		return (bool) preg_match( '#(?:^|/)[^/]+\.[a-z0-9]{1,5}$#i', $resto ) || (bool) preg_match( '#(?:^|/)feed(?:/|$)#i', $resto );
+	}
+}
+
+/* =====================================================================
+ * 1. L'INDIRIZZO CON LA LINGUA
+ *    /de/negozio/ -> WordPress apre /negozio/, sapendo che e' in tedesco.
+ *    Succede prima che WordPress legga l'indirizzo.
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_leggi_indirizzo' ) ) {
+	function tdtseo_leggi_indirizzo() {
+		static $fatto = false;
+		if ( $fatto ) {
+			return;
+		}
+		$fatto = true;
+		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) || empty( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$uri  = (string) $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$cut  = strcspn( $uri, '?#' );
+		$path = substr( $uri, 0, $cut );
+		$coda = (string) substr( $uri, $cut );
+		$base = tdtseo_base();
+		if ( 0 !== strpos( $path, $base ) ) {
+			return;
+		}
+		$resto = (string) substr( $path, strlen( $base ) );
+		if ( ! preg_match( '#^([a-z]{2})(/|$)#', $resto, $m ) || 'it' === $m[1] || ! in_array( $m[1], tdtseo_lingue(), true ) ) {
+			return;
+		}
+		$dopo = (string) substr( $resto, strlen( $m[0] ) );
+		if ( tdtseo_resto_escluso( $dopo ) ) {
+			return;
+		}
+		$GLOBALS['tdtseo_lingua']      = $m[1];
+		$GLOBALS['tdtseo_uri']         = $uri;
+		$GLOBALS['tdtseo_senza_barra'] = ( '' === $m[2] );
+		$_SERVER['REQUEST_URI']        = $base . $dopo . $coda;
+		// alcuni server passano il percorso anche qui, e WordPress lo preferisce
+		$pre = $base . $m[1];
+		foreach ( array( 'PATH_INFO', 'ORIG_PATH_INFO' ) as $k ) {
+			$pi = isset( $_SERVER[ $k ] ) && is_string( $_SERVER[ $k ] ) ? $_SERVER[ $k ] : '';
+			if ( '' !== $pi && 0 === strpos( $pi, $pre ) && ( strlen( $pi ) === strlen( $pre ) || '/' === $pi[ strlen( $pre ) ] ) ) {
+				$_SERVER[ $k ] = $base . ltrim( (string) substr( $pi, strlen( $pre ) ), '/' );
+			}
+		}
+	}
+}
+tdtseo_leggi_indirizzo();
+
+if ( ! function_exists( 'tdtseo_prima_della_richiesta' ) ) {
+	/** Riserva: se il frammento partisse tardi, l'indirizzo si legge comunque prima di WordPress. */
+	function tdtseo_prima_della_richiesta( $fai ) {
+		tdtseo_leggi_indirizzo();
+		return $fai;
+	}
+}
+add_filter( 'do_parse_request', 'tdtseo_prima_della_richiesta', 0 );
+
+if ( ! function_exists( 'tdtseo_host_nostro' ) ) {
+	function tdtseo_host_nostro( $host ) {
+		$nudo = function ( $h ) {
+			return preg_replace( '/^www\./', '', preg_replace( '/:\d+$/', '', strtolower( (string) $h ) ) );
+		};
+		return $nudo( $host ) === $nudo( wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_percorsi_fuori' ) ) {
+	/**
+	 * Percorsi che restano senza lingua (indirizzo di sempre):
+	 * carrello, pagamento, account; pagine, prodotti e categorie di Nutrex Lab.
+	 * Ritorna array( 'inizio' => [percorsi], 'esatti' => [percorsi] ).
+	 */
+	function tdtseo_percorsi_fuori() {
+		static $p = null;
+		if ( null !== $p ) {
+			return $p;
+		}
+		$p    = array(
+			'inizio' => array(),
+			'esatti' => array(),
+		);
+		$path = function ( $url ) {
+			return is_string( $url ) ? (string) wp_parse_url( $url, PHP_URL_PATH ) : '';
+		};
+		if ( function_exists( 'wc_get_page_id' ) ) {
+			foreach ( array( 'cart', 'checkout', 'myaccount' ) as $pagina ) {
+				$id = (int) wc_get_page_id( $pagina );
+				if ( $id > 0 ) {
+					$p['inizio'][] = $path( get_permalink( $id ) );
+				}
+			}
+		}
+		if ( function_exists( 'tdt_lingue_pagine_nutrex' ) ) {
+			foreach ( (array) tdt_lingue_pagine_nutrex() as $id ) {
+				$p['inizio'][] = $path( get_permalink( (int) $id ) );
+			}
+		}
+		if ( function_exists( 'tdt_lingue_categorie_nutrex' ) && taxonomy_exists( 'product_cat' ) ) {
+			$cats = array_filter( array_map( 'intval', (array) tdt_lingue_categorie_nutrex() ) );
+			foreach ( $cats as $cat ) {
+				$link = get_term_link( $cat, 'product_cat' );
+				if ( ! is_wp_error( $link ) ) {
+					$p['inizio'][] = $path( $link );
+				}
+			}
+			if ( $cats && post_type_exists( 'product' ) ) {
+				$ids = get_posts(
+					array(
+						'post_type'        => 'product',
+						'post_status'      => 'publish',
+						'numberposts'      => 500,
+						'fields'           => 'ids',
+						'no_found_rows'    => true,
+						'suppress_filters' => true,
+						'tax_query'        => array( // phpcs:ignore WordPress.DB.SlowDBQuery
+							array(
+								'taxonomy' => 'product_cat',
+								'field'    => 'term_id',
+								'terms'    => $cats,
+							),
+						),
+					)
+				);
+				foreach ( $ids as $id ) {
+					$p['esatti'][] = $path( get_permalink( (int) $id ) );
+				}
+			}
+		}
+		$p['inizio'] = array_values( array_unique( array_filter( $p['inizio'], function ( $x ) {
+			return '' !== $x && '/' !== $x;
+		} ) ) );
+		$p['esatti'] = array_values( array_unique( array_filter( $p['esatti'] ) ) );
+		return $p;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_percorso_fuori' ) ) {
+	function tdtseo_percorso_fuori( $path ) {
+		$path  = '/' . ltrim( (string) $path, '/' );
+		$fuori = tdtseo_percorsi_fuori();
+		$senza = untrailingslashit( $path );
+		foreach ( $fuori['esatti'] as $e ) {
+			if ( untrailingslashit( $e ) === $senza ) {
+				return true;
+			}
+		}
+		foreach ( $fuori['inizio'] as $i ) {
+			if ( 0 === strpos( trailingslashit( $path ), trailingslashit( $i ) ) ) {
+				return true;
+			}
+		}
+		// pagine escluse nelle impostazioni di TDT Lingue
+		return function_exists( 'tdt_lingue_is_esclusa' ) && tdt_lingue_is_esclusa( $path );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_url_lingua' ) ) {
+	/**
+	 * Lo stesso indirizzo del sito nella lingua $lang ("it" = senza sigla).
+	 * Funziona con indirizzi completi o che iniziano con "/" e lascia uguale
+	 * tutto il resto (parametri, #ancora). Ritorna null se l'indirizzo non e'
+	 * una pagina del sito da tradurre (altri siti, file, pannello, carrello...).
+	 */
+	function tdtseo_url_lingua( $url, $lang ) {
+		$url = (string) $url;
+		if ( '' === $url || ! in_array( $lang, tdtseo_lingue(), true ) ) {
+			return null;
+		}
+		if ( preg_match( '/[\s\\\\<>"\'{}]/', $url ) || preg_match( '#^(?:\#|[a-z][a-z0-9+.-]*:(?!//))#i', $url ) ) {
+			return null; // #ancora, mailto:, tel:, javascript:..., segnaposto
+		}
+		$pre = '';
+		if ( preg_match( '#^((?:https?:)?//([^/?\#]+))(.*)$#is', $url, $m ) ) {
+			if ( ! tdtseo_host_nostro( $m[2] ) ) {
+				return null;
+			}
+			$pre  = $m[1];
+			$dopo = $m[3];
+		} elseif ( '/' === substr( $url, 0, 1 ) ) {
+			$dopo = $url;
+		} else {
+			return null; // indirizzi relativi ("pagina/2/"): restano com'erano
+		}
+		$cut  = strcspn( $dopo, '?#' );
+		$path = (string) substr( $dopo, 0, $cut );
+		$coda = (string) substr( $dopo, $cut );
+		$base = tdtseo_base();
+		if ( '' === $path || $path . '/' === $base ) {
+			$path = $base;
+		}
+		if ( 0 !== strpos( $path, $base ) ) {
+			return null;
+		}
+		$resto = (string) substr( $path, strlen( $base ) );
+		if ( preg_match( '#^([a-z]{2})(/|$)#', $resto, $m2 ) && 'it' !== $m2[1] && in_array( $m2[1], tdtseo_lingue(), true ) ) {
+			$resto = (string) substr( $resto, strlen( $m2[0] ) );
+		}
+		if ( tdtseo_resto_escluso( $resto ) || preg_match( '/(?:^\?|&|&amp;|&#0?38;)(?:wc-ajax|rest_route|tdt_lingue_dizionario|feed)=/i', $coda ) ) {
+			return null;
+		}
+		if ( tdtseo_percorso_fuori( $base . $resto ) ) {
+			return null;
+		}
+		return $pre . $base . ( 'it' === $lang ? '' : $lang . '/' ) . $resto . $coda;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_url_attuale' ) ) {
+	/** Indirizzo completo della pagina, senza sigla della lingua (con o senza parametri). */
+	function tdtseo_url_attuale( $con_parametri = true ) {
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '/'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! $con_parametri ) {
+			$uri = (string) substr( $uri, 0, strcspn( $uri, '?#' ) );
+		}
+		return tdtseo_origine() . $uri;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_alternative' ) ) {
+	/** Le versioni di una pagina in tutte le lingue (+ x-default), o array vuoto. */
+	function tdtseo_alternative( $url_it ) {
+		$out = array();
+		foreach ( tdtseo_lingue() as $l ) {
+			$u = tdtseo_url_lingua( $url_it, $l );
+			if ( null === $u ) {
+				return array();
+			}
+			$out[ $l ] = $u;
+		}
+		$c = tdtseo_config();
+		$x = isset( $c['x_default'] ) ? (string) $c['x_default'] : 'it';
+		$out['x-default'] = isset( $out[ $x ] ) ? $out[ $x ] : $out['it'];
+		return $out;
+	}
+}
+
+/* =====================================================================
+ * 2. QUALI PAGINE
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_pagina_traducibile' ) ) {
+	/** Pagina pubblica di The Double Twenty che TDT Lingue traduce (non Nutrex, non esclusa). */
+	function tdtseo_pagina_traducibile() {
+		return function_exists( 'tdt_lingue_attivo_qui' ) && tdt_lingue_attivo_qui();
+	}
+}
+
+if ( ! function_exists( 'tdtseo_pagina_soldi' ) ) {
+	/** Carrello, pagamento, account: restano all'indirizzo di sempre. */
+	function tdtseo_pagina_soldi() {
+		return function_exists( 'is_cart' ) && ( is_cart() || is_checkout() || is_account_page() );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_pagina_con_lingue' ) ) {
+	/** Questa pagina ha i suoi indirizzi /en/ /fr/ /de/ /es/? */
+	function tdtseo_pagina_con_lingue() {
+		static $si = null;
+		if ( null === $si ) {
+			$si = tdtseo_pagina_traducibile() && ! tdtseo_pagina_soldi() && null !== tdtseo_url_lingua( tdtseo_url_attuale(), 'en' );
+		}
+		return $si;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_template_redirect' ) ) {
+	function tdtseo_template_redirect() {
+		$l = tdtseo_lingua();
+		if ( 'it' === $l ) {
+			if ( tdtseo_pagina_traducibile() ) {
+				tdtseo_avvia_buffer();
+			}
+			return;
+		}
+		$italiano = tdtseo_url_attuale();
+		// pagine solo in italiano (Nutrex Lab, escluse, TDT Lingue spento): all'indirizzo italiano
+		if ( ! tdtseo_pagina_traducibile() ) {
+			wp_safe_redirect( $italiano, 302 );
+			exit;
+		}
+		// carrello, pagamento, account: indirizzo di sempre, nella lingua scelta (?lang= lo legge TDT Lingue)
+		if ( tdtseo_pagina_soldi() || ! tdtseo_pagina_con_lingue() ) {
+			wp_safe_redirect( add_query_arg( 'lang', $l, $italiano ), 302 );
+			exit;
+		}
+		// "/de" senza barra finale -> "/de/"
+		if ( ! empty( $GLOBALS['tdtseo_senza_barra'] ) ) {
+			$coda = (string) substr( $italiano, strlen( tdtseo_origine() . tdtseo_base() ) );
+			wp_safe_redirect( tdtseo_origine() . tdtseo_base() . $l . '/' . ltrim( $coda, '/' ), 301 );
+			exit;
+		}
+		tdtseo_avvia_buffer();
+	}
+}
+add_action( 'template_redirect', 'tdtseo_template_redirect', 0 );
+
+if ( ! function_exists( 'tdtseo_redirect_canonical' ) ) {
+	/** I reindirizzamenti di WordPress (es. barra finale mancante) restano nella lingua. */
+	function tdtseo_redirect_canonical( $dove ) {
+		if ( $dove && 'it' !== tdtseo_lingua() ) {
+			$n = tdtseo_url_lingua( $dove, tdtseo_lingua() );
+			if ( null !== $n ) {
+				return $n;
+			}
+		}
+		return $dove;
+	}
+}
+add_filter( 'redirect_canonical', 'tdtseo_redirect_canonical', 99 );
+
+/* =====================================================================
+ * 3. LA PAGINA PER I MOTORI DI RICERCA
+ *    Si lavora sulla pagina finita (quella che va anche nella cache):
+ *    funziona con Yoast, con il tema e con Elementor senza dipendere da
+ *    nessuno dei tre.
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_avvia_buffer' ) ) {
+	function tdtseo_avvia_buffer() {
+		static $via = false;
+		if ( $via || is_feed() || is_embed() || is_robots() ) {
+			return;
+		}
+		$via = true;
+		ob_start( 'tdtseo_buffer' );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_attr' ) ) {
+	/** Valore (come scritto nella pagina) di un attributo di un tag, o null. */
+	function tdtseo_attr( $tag, $nome ) {
+		if ( preg_match( '/\s' . preg_quote( $nome, '/' ) . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'>]+))/i', $tag, $m, PREG_UNMATCHED_AS_NULL ) ) {
+			foreach ( array( 1, 2, 3 ) as $i ) {
+				if ( isset( $m[ $i ] ) ) {
+					return (string) $m[ $i ];
+				}
+			}
+			return '';
+		}
+		return null;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_metti_attr' ) ) {
+	/** Cambia il valore di un attributo; $valore e' gia' pronto per la pagina (escapato). */
+	function tdtseo_metti_attr( $tag, $nome, $valore ) {
+		return (string) preg_replace_callback(
+			'/\s' . preg_quote( $nome, '/' ) . '\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s"\'>]+)/i',
+			function () use ( $nome, $valore ) {
+				return ' ' . $nome . '="' . str_replace( '"', '&quot;', $valore ) . '"';
+			},
+			$tag,
+			1
+		);
+	}
+}
+
+if ( ! function_exists( 'tdtseo_testo' ) ) {
+	/** Da HTML a testo ("&#8211;" -> "–"). */
+	function tdtseo_testo( $s ) {
+		return html_entity_decode( (string) $s, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_buffer' ) ) {
+	function tdtseo_buffer( $html ) {
+		if ( ! is_string( $html ) || '' === $html ) {
+			return $html;
+		}
+		try {
+			return tdtseo_pagina( $html );
+		} catch ( \Throwable $e ) {
+			return $html; // mai una pagina rotta: in caso di imprevisti esce com'era
+		}
+	}
+}
+
+if ( ! function_exists( 'tdtseo_pagina' ) ) {
+	function tdtseo_pagina( $html ) {
+		foreach ( headers_list() as $h ) {
+			if ( 0 === stripos( $h, 'content-type:' ) && false === stripos( $h, 'html' ) ) {
+				return $html;
+			}
+		}
+		$fine = stripos( $html, '</head>' );
+		if ( false === $fine || false === stripos( substr( $html, 0, $fine ), '<html' ) ) {
+			return $html;
+		}
+		$l     = tdtseo_lingua();
+		$testa = substr( $html, 0, $fine );
+		$resto = substr( $html, $fine );
+
+		// la pagina italiana a cui corrispondono le lingue (canonical di Yoast, o l'indirizzo)
+		$canon = tdtseo_canonical( $testa );
+		$it    = '' !== $canon ? tdtseo_url_lingua( $canon, 'it' ) : null;
+		if ( null === $it ) {
+			$it = '' !== $canon ? $canon : tdtseo_url_attuale( false );
+		}
+		$alternative = array();
+		if ( tdtseo_pagina_con_lingue() && tdtseo_indicizzabile( $testa ) && tdtseo_stessa_pagina( $it, tdtseo_url_attuale( false ) ) ) {
+			$alternative = tdtseo_alternative( $it );
+		}
+
+		if ( 'it' !== $l ) {
+			$mancanti = array();
+			$testa    = tdtseo_testa_tradotta( $testa, $l, $mancanti );
+			$resto    = tdtseo_link_tradotti( $resto, $l );
+			if ( $mancanti && $alternative && '' === (string) wp_parse_url( tdtseo_url_attuale(), PHP_URL_QUERY ) ) {
+				tdtseo_segnala( $mancanti, $l );
+			}
+		}
+
+		// hreflang: tolti eventuali altri, messi i nostri in fondo all'<head>
+		$testa = (string) preg_replace( '/<link\b[^>]*\shreflang\s*=[^>]*>[ \t]*\n?/i', '', $testa );
+		if ( $alternative ) {
+			$testa .= "<!-- TDT SEO lingue -->\n";
+			foreach ( $alternative as $codice => $u ) {
+				$testa .= '<link rel="alternate" hreflang="' . esc_attr( $codice ) . '" href="' . esc_url( $u ) . '" />' . "\n";
+			}
+		}
+		return $testa . $resto;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_canonical' ) ) {
+	function tdtseo_canonical( $testa ) {
+		if ( preg_match_all( '/<link\b[^>]*>/i', $testa, $mm ) ) {
+			foreach ( $mm[0] as $tag ) {
+				if ( 'canonical' === strtolower( trim( (string) tdtseo_attr( $tag, 'rel' ) ) ) ) {
+					return tdtseo_testo( (string) tdtseo_attr( $tag, 'href' ) );
+				}
+			}
+		}
+		return '';
+	}
+}
+
+if ( ! function_exists( 'tdtseo_indicizzabile' ) ) {
+	function tdtseo_indicizzabile( $testa ) {
+		if ( is_404() || is_search() || is_preview() || ( is_singular() && post_password_required() ) ) {
+			return false;
+		}
+		if ( preg_match_all( '/<meta\b[^>]*>/i', $testa, $mm ) ) {
+			foreach ( $mm[0] as $tag ) {
+				$n = strtolower( (string) tdtseo_attr( $tag, 'name' ) );
+				if ( ( 'robots' === $n || 'googlebot' === $n ) && false !== stripos( (string) tdtseo_attr( $tag, 'content' ), 'noindex' ) ) {
+					return false;
+				}
+			}
+		}
+		foreach ( headers_list() as $h ) {
+			if ( 0 === stripos( $h, 'x-robots-tag:' ) && false !== stripos( $h, 'noindex' ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_stessa_pagina' ) ) {
+	/** Il canonical e' questa pagina? (se punta altrove, niente hreflang qui) */
+	function tdtseo_stessa_pagina( $a, $b ) {
+		$p = function ( $u ) {
+			return strtolower( untrailingslashit( rawurldecode( (string) wp_parse_url( (string) $u, PHP_URL_PATH ) ) ) );
+		};
+		return tdtseo_host_nostro( (string) wp_parse_url( (string) $a, PHP_URL_HOST ) ) && $p( $a ) === $p( $b );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_testa_tradotta' ) ) {
+	/** L'<head> nella lingua dell'indirizzo. */
+	function tdtseo_testa_tradotta( $testa, $l, &$mancanti ) {
+		// <html lang="de-DE" data-tdt-lang="de">
+		$testa = (string) preg_replace_callback(
+			'/<html\b[^>]*>/i',
+			function ( $m ) use ( $l ) {
+				$tag = preg_replace( '/\s(?:lang|data-tdt-lang)\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $m[0] );
+				return preg_replace( '/^<html\b/i', '<html lang="' . esc_attr( tdtseo_locale( $l ) ) . '" data-tdt-lang="' . esc_attr( $l ) . '"', $tag, 1 );
+			},
+			$testa,
+			1
+		);
+
+		// titolo
+		$testa = (string) preg_replace_callback(
+			'#(<title\b[^>]*>)(.*?)(</title>)#is',
+			function ( $m ) use ( $l, &$mancanti ) {
+				$manca = '';
+				$t     = tdtseo_traduci_titolo( tdtseo_testo( $m[2] ), $l, $manca );
+				if ( '' !== $manca ) {
+					$mancanti[] = $manca;
+				}
+				return $m[1] . esc_html( $t ) . $m[3];
+			},
+			$testa,
+			1
+		);
+
+		// link e meta di Yoast (e di chiunque altro)
+		$testa = (string) preg_replace_callback(
+			'/<(link|meta)\b[^>]*>/i',
+			function ( $m ) use ( $l, &$mancanti ) {
+				$tag = $m[0];
+				if ( 'link' === strtolower( $m[1] ) ) {
+					$rel = strtolower( trim( (string) tdtseo_attr( $tag, 'rel' ) ) );
+					if ( in_array( $rel, array( 'canonical', 'next', 'prev' ), true ) ) {
+						$href = tdtseo_attr( $tag, 'href' );
+						$n    = null === $href ? null : tdtseo_url_lingua( $href, $l );
+						if ( null !== $n ) {
+							$tag = tdtseo_metti_attr( $tag, 'href', $n );
+						}
+					}
+					return $tag;
+				}
+				$chi = strtolower( (string) ( null !== tdtseo_attr( $tag, 'property' ) ? tdtseo_attr( $tag, 'property' ) : tdtseo_attr( $tag, 'name' ) ) );
+				$val = tdtseo_attr( $tag, 'content' );
+				if ( null === $val ) {
+					return $tag;
+				}
+				switch ( $chi ) {
+					case 'og:url':
+						$n = tdtseo_url_lingua( $val, $l );
+						return null === $n ? $tag : tdtseo_metti_attr( $tag, 'content', $n );
+					case 'og:locale':
+						return tdtseo_metti_attr( $tag, 'content', esc_attr( tdtseo_locale( $l, true ) ) );
+					case 'og:title':
+					case 'twitter:title':
+						$manca = '';
+						return tdtseo_metti_attr( $tag, 'content', esc_attr( tdtseo_traduci_titolo( tdtseo_testo( $val ), $l, $manca ) ) );
+					case 'description':
+					case 'og:description':
+					case 'twitter:description':
+						$t = tdtseo_cerca( tdtseo_testo( $val ), $l );
+						if ( null !== $t ) {
+							return tdtseo_metti_attr( $tag, 'content', esc_attr( $t ) );
+						}
+						// in italiano su una pagina tedesca no: senza, Google riassume il testo tradotto
+						if ( 'description' === $chi ) {
+							$mancanti[] = tdtseo_testo( $val );
+						}
+						return '';
+					case 'og:image:alt':
+					case 'twitter:image:alt':
+						$t = tdtseo_cerca( tdtseo_testo( $val ), $l );
+						return null === $t ? $tag : tdtseo_metti_attr( $tag, 'content', esc_attr( $t ) );
+				}
+				return $tag;
+			},
+			$testa
+		);
+
+		// dati strutturati di Yoast: la lingua della pagina
+		return (string) preg_replace( '/("inLanguage"\s*:\s*")it(?:[-_]IT)?(")/i', '${1}' . tdtseo_locale( $l ) . '${2}', $testa );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_link_tradotti' ) ) {
+	/** I link interni della pagina nella stessa lingua (anche i moduli, es. "Aggiungi al carrello"). */
+	function tdtseo_link_tradotti( $html, $l ) {
+		return (string) preg_replace_callback(
+			'/<(a|area|form)\b[^>]*>/i',
+			function ( $m ) use ( $l ) {
+				$tag  = $m[0];
+				$nome = 'form' === strtolower( $m[1] ) ? 'action' : 'href';
+				if ( preg_match( '/\s(?:hreflang|download|data-tdt-seo-salta)(?:\s*=|[\s>\/])/i', $tag ) ) {
+					return $tag;
+				}
+				$v = tdtseo_attr( $tag, $nome );
+				$n = null === $v ? null : tdtseo_url_lingua( $v, $l );
+				return ( null === $n || $n === $v ) ? $tag : tdtseo_metti_attr( $tag, $nome, $n );
+			},
+			$html
+		);
+	}
+}
+
+/* =====================================================================
+ * 4. TRADUZIONI DEL TITOLO E DELLA DESCRIZIONE
+ *    Gli stessi dizionari di TDT Lingue (testi del sito + traduzioni
+ *    aggiunte), con le stesse regole: la chiave e' il testo italiano.
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_norm' ) ) {
+	/** Come TDT Lingue: spazi, trattini e virgolette tipografiche non contano. */
+	function tdtseo_norm( $s ) {
+		$s = str_replace( '&nbsp;', ' ', (string) $s );
+		$s = (string) preg_replace( '/[\s\x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]+/u', ' ', $s );
+		$s = (string) preg_replace( '/ [\x{2013}\x{2014}] /u', ' - ', $s );
+		$s = (string) preg_replace( '/[\x{2018}\x{2019}]/u', "'", $s );
+		$s = (string) preg_replace( '/[\x{201C}\x{201D}]/u', '"', $s );
+		return trim( $s );
+	}
+}
+
+if ( ! function_exists( 'tdtseo_dizionario' ) ) {
+	/** Testo italiano (normalizzato) => traduzione, per una lingua. */
+	function tdtseo_dizionario( $l ) {
+		static $cache = array();
+		if ( isset( $cache[ $l ] ) ) {
+			return $cache[ $l ];
+		}
+		$parti = array();
+		if ( function_exists( 'tdt_lingue_dizionario_sito' ) ) {
+			$parti[] = (array) tdt_lingue_dizionario_sito( $l );
+		}
+		if ( function_exists( 'tdt_lingue_dizionario_personale' ) ) {
+			$parti[] = (array) tdt_lingue_dizionario_personale( $l ); // le aggiunte vincono
+		}
+		$d = array();
+		foreach ( $parti as $parte ) {
+			foreach ( $parte as $k => $v ) {
+				$k = (string) $k;
+				// solo testo semplice: niente HTML e niente modelli con {n}
+				if ( ! is_string( $v ) || '' === $v || false !== strpos( $k, '<' ) || preg_match( '/\{(\d|n)\}|%(\d\$)?[sd]/', $k ) ) {
+					continue;
+				}
+				$nk = tdtseo_norm( tdtseo_testo( $k ) );
+				if ( '' !== $nk ) {
+					$d[ $nk ] = tdtseo_testo( $v );
+				}
+			}
+		}
+		$cache[ $l ] = $d;
+		return $d;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_cerca' ) ) {
+	/** Traduzione di un testo italiano, o null (stesse regole di TDT Lingue). */
+	function tdtseo_cerca( $testo, $l, $interno = false ) {
+		$d = tdtseo_dizionario( $l );
+		$k = tdtseo_norm( $testo );
+		if ( '' === $k || ! $d ) {
+			return null;
+		}
+		if ( isset( $d[ $k ] ) ) {
+			return $d[ $k ];
+		}
+		// tra virgolette
+		if ( preg_match( '/^\s*(["\'\x{00AB}\x{201C}\x{2018}]\s*)(.+?)(\s*["\'\x{00BB}\x{201D}\x{2019}])\s*$/u', (string) $testo, $q ) ) {
+			$dentro = tdtseo_cerca( $q[2], $l, true );
+			if ( null !== $dentro ) {
+				return $q[1] . $dentro . $q[3];
+			}
+		}
+		if ( ! preg_match( '/[A-Za-z\x{00C0}-\x{00FF}]/u', $k ) ) {
+			return null;
+		}
+		// separatori attorno al testo (" / Nome", "Categorie:")
+		if ( ! $interno && preg_match( '/^([\s\/\x{00B7}|\x{2022}\x{2013}\x{2014}\x{00BB}>:,.\-]*)(.*?)([\s\/\x{00B7}|\x{2022}\x{2013}\x{2014}\x{00BB}>:,.\-]*)$/u', $k, $s ) ) {
+			if ( '' !== $s[2] && $s[2] !== $k && preg_match( '/[A-Za-z\x{00C0}-\x{00FF}]/u', $s[2] ) ) {
+				$mezzo = tdtseo_cerca( $s[2], $l, true );
+				if ( null !== $mezzo ) {
+					return $s[1] . $mezzo . $s[3];
+				}
+			}
+		}
+		return null;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_traduci_titolo' ) ) {
+	/**
+	 * Il titolo come lo traduce TDT Lingue nel browser: intero, oppure
+	 * "Nome prodotto - The Double Twenty" -> prima il nome, poi pezzo per pezzo.
+	 * In $manca la parte che non ha traduzione (per segnalarla).
+	 */
+	function tdtseo_traduci_titolo( $it, $l, &$manca ) {
+		$t = tdtseo_cerca( $it, $l );
+		if ( null !== $t ) {
+			return $t;
+		}
+		$sep   = '/(\s[\-\x{2013}\x{2014}|\x{00B7}\x{2022}:]\s)/u';
+		$pezzi = preg_split( $sep, (string) $it, -1, PREG_SPLIT_DELIM_CAPTURE );
+		if ( ! is_array( $pezzi ) ) {
+			return $it;
+		}
+		$trad = function ( $p ) use ( $l, $sep ) {
+			if ( preg_match( $sep, $p ) || ! preg_match( '/[A-Za-z\x{00C0}-\x{00FF}]/u', $p ) ) {
+				return $p;
+			}
+			$x = tdtseo_cerca( $p, $l );
+			return null === $x ? $p : $x;
+		};
+		$n = count( $pezzi );
+		if ( $n >= 3 ) {
+			$testa = implode( '', array_slice( $pezzi, 0, -2 ) );
+			$x     = tdtseo_cerca( $testa, $l );
+			if ( null !== $x ) {
+				return $x . $pezzi[ $n - 2 ] . $trad( $pezzi[ $n - 1 ] );
+			}
+			$out = implode( '', array_map( $trad, $pezzi ) );
+			if ( $out === $it ) {
+				$manca = tdtseo_norm( $testa );
+			}
+			return $out;
+		}
+		$out = implode( '', array_map( $trad, $pezzi ) );
+		if ( $out === $it ) {
+			$manca = tdtseo_norm( $it );
+		}
+		return $out;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_segnala' ) ) {
+	/** Titoli e descrizioni senza traduzione in Impostazioni > TDT Lingue > Testi senza traduzione. */
+	function tdtseo_segnala( $testi, $l ) {
+		if ( ! function_exists( 'tdt_lingue_rest_mancanti' ) ) {
+			return;
+		}
+		$elenco = get_option( 'tdt_lingue_mancanti', array() );
+		$elenco = is_array( $elenco ) ? $elenco : array();
+		$path   = (string) wp_parse_url( isset( $GLOBALS['tdtseo_uri'] ) ? (string) $GLOBALS['tdtseo_uri'] : '', PHP_URL_PATH );
+		$nuovo  = false;
+		foreach ( array_unique( $testi ) as $t ) {
+			$t = trim( (string) wp_check_invalid_utf8( mb_substr( (string) $t, 0, 3000 ) ) );
+			if ( '' === $t ) {
+				continue;
+			}
+			$k = md5( $t );
+			if ( isset( $elenco[ $k ] ) ) {
+				if ( empty( $elenco[ $k ]['lingue'][ $l ] ) ) {
+					$elenco[ $k ]['lingue'][ $l ] = 1;
+					$nuovo                        = true;
+				}
+				continue;
+			}
+			if ( count( $elenco ) >= 1000 ) {
+				break;
+			}
+			$elenco[ $k ] = array(
+				'testo'  => $t,
+				'tipo'   => 'seo',
+				'url'    => mb_substr( $path, 0, 300 ),
+				'lingue' => array( $l => 1 ),
+				'quando' => time(),
+			);
+			$nuovo        = true;
+		}
+		if ( $nuovo ) {
+			update_option( 'tdt_lingue_mancanti', $elenco, false );
+		}
+	}
+}
+
+/* =====================================================================
+ * 5. NEL BROWSER: lingua del paese, scelta salvata, selettore
+ *    Prima dello script di TDT Lingue, cosi' su /de/ TDT Lingue parte gia'
+ *    in tedesco.
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_head' ) ) {
+	function tdtseo_head() {
+		if ( ! tdtseo_pagina_traducibile() ) {
+			return;
+		}
+		$c   = tdtseo_config();
+		$cfg = array(
+			'lingue'       => tdtseo_lingue(),
+			'base'         => tdtseo_base(),
+			'url'          => tdtseo_lingua(),
+			'prefissabile' => tdtseo_pagina_con_lingue(),
+			'post'         => isset( $_SERVER['REQUEST_METHOD'] ) && 'GET' !== strtoupper( (string) $_SERVER['REQUEST_METHOD'] ), // phpcs:ignore
+			'auto'         => ! empty( $c['auto'] ),
+			'geo'          => ! empty( $c['geo_ip'] ) && class_exists( 'WC_Geolocation' ),
+			'ajax'         => admin_url( 'admin-ajax.php' ),
+			'chiave'       => 'tdt_lang',
+		);
+		$json = wp_json_encode( $cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
+		echo '<script id="tdt-seo-lingue" data-no-optimize="1" data-cfasync="false" data-no-defer="1" data-pagespeed-no-defer>window.TDT_SEO=' . $json . ';' . tdtseo_js() . "</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+	}
+}
+add_action( 'wp_head', 'tdtseo_head', 0 );
+
+if ( ! function_exists( 'tdtseo_head_dopo' ) ) {
+	/** Dopo TDT Lingue: se il browser non ha memoria, l'indirizzo torna senza ?lang=. */
+	function tdtseo_head_dopo() {
+		if ( 'it' === tdtseo_lingua() || ! tdtseo_pagina_traducibile() ) {
+			return;
+		}
+		echo '<script id="tdt-seo-lingue-dopo" data-no-optimize="1" data-cfasync="false" data-no-defer="1">(function(){var C=window.TDT_SEO;if(C&&C.ripristina){try{history.replaceState(history.state,"",C.ripristina);}catch(e){}}})();</script>' . "\n";
+	}
+}
+add_action( 'wp_head', 'tdtseo_head_dopo', 2 );
+
+if ( ! function_exists( 'tdtseo_js' ) ) {
+	function tdtseo_js() {
+		return <<<'JS'
+(function () {
+  'use strict';
+  var C = window.TDT_SEO;
+  if (!C || C.avviato) return;
+  C.avviato = true;
+  var DOC = document;
+  var LINGUE = C.lingue || ['it', 'en', 'fr', 'de', 'es'];
+  var BASE = C.base || '/';
+  var K = C.chiave || 'tdt_lang';
+  var FATTO = 'tdt_seo_auto';
+  var ua = navigator.userAgent || '';
+  /* motori di ricerca e anteprime dei link: mai spostati */
+  var bot = /bot[\/;)\s_-]|bot$|crawl|spider|slurp|mediapartners|-google|google-|googleother|lighthouse|pagespeed|headless|facebookexternalhit|ia_archiver|embedly|whatsapp|telegram|pinterest|vkshare|preview/i.test(ua) && !/cubot/i.test(ua);
+  /* parametri che si possono portare nell'altra lingua (filtri, ricerca, campagne) */
+  var SICURI = /^(lang|paese|s|ref|post_type|orderby|paged?|product_(cat|tag)|min_price|max_price|rating_filter|(filter|query_type)_[\w-]+|utm_[\w-]+|_ga|_gl|gclid|gbraid|wbraid|dclid|fbclid|msclkid|srsltid|igshid|ttclid|twclid|li_fat_id|mc_[ce]id)$/i;
+
+  function valida(l) { return typeof l === 'string' && LINGUE.indexOf(l) > -1; }
+  function leggi(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function scrivi(k, v) {
+    try {
+      if (v == null) window.localStorage.removeItem(k); else window.localStorage.setItem(k, v);
+      return true;
+    } catch (e) { return false; }
+  }
+  /* come TDT Lingue: l'italiano non si scrive (e' la lingua del sito), le altre si' */
+  function ricorda(l) { scrivi(FATTO, '1'); return scrivi(K, l === 'it' ? null : l); }
+
+  var PAR = location.search.replace(/^\?/, '').split('&').filter(Boolean).map(function (p) {
+    var i = p.indexOf('=');
+    var k = i > -1 ? p.slice(0, i) : p;
+    var v = i > -1 ? p.slice(i + 1) : '';
+    try { k = decodeURIComponent(k.replace(/\+/g, ' ')); v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (e) {}
+    return { k: k, v: v, p: p };
+  });
+  function par(k) {
+    for (var i = 0; i < PAR.length; i++) if (PAR[i].k === k) return PAR[i].v;
+    return null;
+  }
+  function sicura() { return PAR.every(function (x) { return SICURI.test(x.k); }); }
+
+  /* questa pagina in un'altra lingua: stesso percorso, stessi filtri */
+  function urlPer(l) {
+    var p = location.pathname;
+    if (p + '/' === BASE) p = BASE;
+    if (p.indexOf(BASE) !== 0) return null;
+    var resto = p.slice(BASE.length);
+    var m = /^([a-z]{2})(\/|$)/.exec(resto);
+    if (m && m[1] !== 'it' && valida(m[1])) resto = resto.slice(m[0].length);
+    var q = PAR.filter(function (x) { return x.k !== 'lang' && x.k !== 'paese' && SICURI.test(x.k); })
+      .map(function (x) { return x.p; }).join('&');
+    return BASE + (l === 'it' ? '' : l + '/') + resto + (q ? '?' + q : '') + location.hash;
+  }
+
+  function nascondi() {
+    if (DOC.readyState !== 'loading' || DOC.getElementById('tdt-seo-attesa')) return;
+    var s = DOC.createElement('style');
+    s.id = 'tdt-seo-attesa';
+    s.textContent = 'html{visibility:hidden!important}';
+    (DOC.head || DOC.documentElement).appendChild(s);
+    setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 4000);
+  }
+  function vai(url, auto) {
+    if (!url || url === location.pathname + location.search + location.hash) return false;
+    if (auto) {
+      /* mai due volte di fila verso lo stesso indirizzo: niente giri a vuoto */
+      try {
+        var g = JSON.parse(window.sessionStorage.getItem('tdt_seo_vai') || 'null');
+        if (g && g.u === url && Date.now() - g.t < 5000) return false;
+        window.sessionStorage.setItem('tdt_seo_vai', JSON.stringify({ u: url, t: Date.now() }));
+      } catch (e) {}
+      nascondi();
+    }
+    C.via = url;
+    location.replace(url);
+    return true;
+  }
+
+  /* ---- lingua del paese ---- */
+  var BROWSER = (function () {
+    var l = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    var out = [];
+    for (var i = 0; i < l.length; i++) {
+      var x = String(l[i] || '').toLowerCase().split(/[-_]/)[0];
+      if (x && out.indexOf(x) < 0) out.push(x);
+    }
+    return out;
+  })();
+  function primaDelSito() {
+    for (var i = 0; i < BROWSER.length; i++) if (valida(BROWSER[i])) return BROWSER[i];
+    return null;
+  }
+  var PAESI = {
+    it: 'IT SM VA',
+    de: 'DE AT LI',
+    fr: 'FR MC GP MQ GF RE YT PM BL MF NC PF WF SN CI ML BF NE TG BJ GN CD CG GA MG DJ TD CF KM MA DZ TN HT',
+    es: 'ES AD MX GT HN SV NI CR PA CU DO PR CO VE EC PE BO CL AR UY PY GQ',
+    en: 'GB IE MT GI IM JE GG AU NZ ZA SG IN PH NG KE GH JM TT'
+  };
+  /* paesi con piu' lingue: quella del dispositivo, se e' tra queste; altrimenti la seconda */
+  var MISTI = { CH: 'de fr it|de', BE: 'fr de|en', LU: 'fr de|fr', CA: 'en fr|en', US: 'en es|en', CM: 'fr en|fr' };
+  function linguaDelPaese(cc) {
+    cc = String(cc || '').toUpperCase();
+    if (!/^[A-Z]{2}$/.test(cc)) return null;
+    if (MISTI[cc]) {
+      var parti = MISTI[cc].split('|');
+      var ammesse = parti[0].split(' ');
+      for (var i = 0; i < BROWSER.length; i++) if (ammesse.indexOf(BROWSER[i]) > -1 && valida(BROWSER[i])) return BROWSER[i];
+      return valida(parti[1]) ? parti[1] : 'it';
+    }
+    for (var l in PAESI) {
+      if (Object.prototype.hasOwnProperty.call(PAESI, l) && valida(l) && (' ' + PAESI[l] + ' ').indexOf(' ' + cc + ' ') > -1) return l;
+    }
+    /* paese senza una lingua del sito: quella del dispositivo, o l'inglese */
+    return primaDelSito() || (valida('en') ? 'en' : 'it');
+  }
+  var FUSI = {
+    'Europe/Rome': 'IT', 'Europe/San_Marino': 'SM', 'Europe/Vatican': 'VA',
+    'Europe/Berlin': 'DE', 'Europe/Busingen': 'DE', 'Europe/Vienna': 'AT', 'Europe/Vaduz': 'LI', 'Europe/Zurich': 'CH',
+    'Europe/Paris': 'FR', 'Europe/Monaco': 'MC', 'Europe/Brussels': 'BE', 'Europe/Luxembourg': 'LU',
+    'Europe/Madrid': 'ES', 'Atlantic/Canary': 'ES', 'Africa/Ceuta': 'ES', 'Europe/Andorra': 'AD',
+    'Europe/London': 'GB', 'Europe/Dublin': 'IE', 'Europe/Malta': 'MT', 'Europe/Gibraltar': 'GI',
+    'Europe/Isle_of_Man': 'IM', 'Europe/Jersey': 'JE', 'Europe/Guernsey': 'GG',
+    'America/Mexico_City': 'MX', 'America/Cancun': 'MX', 'America/Monterrey': 'MX', 'America/Merida': 'MX',
+    'America/Tijuana': 'MX', 'America/Chihuahua': 'MX', 'America/Hermosillo': 'MX', 'America/Mazatlan': 'MX',
+    'America/Bogota': 'CO', 'America/Lima': 'PE', 'America/Santiago': 'CL', 'America/Caracas': 'VE',
+    'America/Montevideo': 'UY', 'America/Asuncion': 'PY', 'America/La_Paz': 'BO', 'America/Guayaquil': 'EC',
+    'America/Guatemala': 'GT', 'America/El_Salvador': 'SV', 'America/Tegucigalpa': 'HN', 'America/Managua': 'NI',
+    'America/Costa_Rica': 'CR', 'America/Panama': 'PA', 'America/Havana': 'CU', 'America/Santo_Domingo': 'DO',
+    'America/Puerto_Rico': 'PR', 'America/Buenos_Aires': 'AR',
+    'Indian/Reunion': 'RE', 'Indian/Mayotte': 'YT', 'America/Martinique': 'MQ', 'America/Guadeloupe': 'GP',
+    'America/Cayenne': 'GF', 'Pacific/Noumea': 'NC', 'Pacific/Tahiti': 'PF',
+    'America/Toronto': 'CA', 'America/Montreal': 'CA', 'America/Vancouver': 'CA', 'America/Edmonton': 'CA',
+    'America/Winnipeg': 'CA', 'America/Halifax': 'CA', 'America/St_Johns': 'CA', 'America/Regina': 'CA',
+    'America/New_York': 'US', 'America/Chicago': 'US', 'America/Denver': 'US', 'America/Los_Angeles': 'US',
+    'America/Phoenix': 'US', 'America/Anchorage': 'US', 'America/Detroit': 'US', 'America/Boise': 'US',
+    'Pacific/Honolulu': 'US', 'Pacific/Auckland': 'NZ'
+  };
+  /* senza risposta dal server: il fuso orario del dispositivo */
+  function linguaSenzaIp() {
+    var z = '';
+    try { z = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    if (!z) return primaDelSito() || 'it';
+    var cc = FUSI[z] || (/^America\/Argentina\//.test(z) ? 'AR' : /^America\/(Indiana|Kentucky|North_Dakota)\//.test(z) ? 'US' : /^Australia\//.test(z) ? 'AU' : '');
+    /* alcuni sistemi danno "Europe/Berlin" anche in Scandinavia e "Europe/Brussels" in Olanda */
+    if (cc && /^(DE|AT|CH|FR|MC|BE|LU)$/.test(cc) && /^(nl|sv|da|nb|nn|no|fi|is|fo)$/.test(BROWSER[0] || '')) cc = '';
+    return cc ? linguaDelPaese(cc) : (primaDelSito() || (valida('en') ? 'en' : 'it'));
+  }
+  /* telefono in tedesco e fuso orario tedesco: si sa gia', senza chiedere al server */
+  function rapida() {
+    var b = BROWSER[0];
+    if (!valida(b) || b === 'it') return null;
+    return linguaSenzaIp() === b ? b : null;
+  }
+  function chiedi(fine) {
+    if (!C.geo || !window.fetch || !C.ajax) { fine(null); return; }
+    var finito = false;
+    function esci(cc) { if (!finito) { finito = true; fine(cc); } }
+    setTimeout(function () { esci(null); }, 2500);
+    window.fetch(C.ajax, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'action=tdt_seo_paese'
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      esci(j && /^[A-Z]{2}$/.test(j.p || '') ? j.p : null);
+    }, function () { esci(null); });
+  }
+
+  var scelta = false; /* il visitatore ha usato il selettore */
+
+  function decidi() {
+    var ql = par('lang');
+    var qp = par('paese');
+    if (valida(ql)) {
+      ricorda(ql);
+      if (ql !== 'it' && sicura()) vai(urlPer(ql), true);
+      return;
+    }
+    if (C.post || !sicura()) return;
+    if (qp && /^[A-Za-z]{2}$/.test(qp)) {
+      /* prova: ?paese=DE fa come una prima visita dalla Germania */
+      var lp = linguaDelPaese(qp) || 'it';
+      ricorda(lp);
+      if (lp !== 'it') vai(urlPer(lp), true);
+      else try { history.replaceState(history.state, '', urlPer('it')); } catch (e) {}
+      return;
+    }
+    if (bot) return;
+    var s = leggi(K);
+    if (valida(s) && s !== 'it') {
+      scrivi(FATTO, '1');
+      vai(urlPer(s), true);
+      return;
+    }
+    if (leggi(FATTO) || !C.auto) return;
+    var r = rapida();
+    if (r) {
+      ricorda(r);
+      vai(urlPer(r), true);
+      return;
+    }
+    chiedi(function (cc) {
+      if (scelta || leggi(FATTO)) return; /* nel frattempo ha scelto lui */
+      var l = (cc && linguaDelPaese(cc)) || linguaSenzaIp();
+      if (!valida(l)) l = 'it';
+      ricorda(l);
+      if (l !== 'it') vai(urlPer(l), true);
+    });
+  }
+
+  if (C.url !== 'it') {
+    /* indirizzo con la lingua: TDT Lingue parte in quella lingua */
+    var ql = par('lang');
+    if (valida(ql) && ql !== C.url && C.prefissabile) {
+      ricorda(ql);
+      if (vai(urlPer(ql), true)) return;
+    }
+    if (!ricorda(C.url) && !valida(ql)) {
+      /* browser senza memoria (alcune finestre private): TDT Lingue legge la lingua da ?lang=,
+         poi l'indirizzo torna pulito (script subito dopo TDT Lingue) */
+      try {
+        var pulito = location.pathname + location.search + location.hash;
+        history.replaceState(history.state, '', location.pathname + (location.search ? location.search + '&' : '?') + 'lang=' + C.url + location.hash);
+        C.ripristina = pulito;
+      } catch (e) {}
+    }
+  } else if (C.prefissabile) {
+    decidi();
+  }
+
+  /* selettore di TDT Lingue: porta all'indirizzo della lingua scelta */
+  DOC.addEventListener('click', function (e) {
+    var o = e.target && e.target.closest ? e.target.closest('.tdt-lingue__opt[data-lang]') : null;
+    if (!o) return;
+    var l = o.getAttribute('data-lang');
+    if (!valida(l)) return;
+    scelta = true;
+    scrivi(FATTO, '1');
+    if (!C.prefissabile || l === C.url) return; /* qui traduce TDT Lingue, sul posto */
+    var u = urlPer(l);
+    if (!u) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ricorda(l);
+    vai(u, false);
+  }, true);
+
+  /* lingua cambiata da uno script (TDTLingue.setLang): stessa cosa */
+  function aggancia() {
+    var L = window.TDTLingue;
+    if (!L || typeof L.onLang !== 'function') return;
+    var iniziale = window.TDT_LINGUE_INIZIALE || L.lang();
+    L.onLang(function (l) {
+      if (!valida(l) || l === iniziale || l === C.url || C.via) return;
+      scrivi(FATTO, '1');
+      if (C.prefissabile) {
+        ricorda(l);
+        vai(urlPer(l), false);
+      }
+    });
+  }
+  if (DOC.readyState === 'loading') DOC.addEventListener('DOMContentLoaded', aggancia);
+  else aggancia();
+})();
+JS;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_ajax_paese' ) ) {
+	/**
+	 * Il paese del visitatore dal suo indirizzo IP, con la geolocalizzazione
+	 * di WooCommerce (MaxMind se configurato in WooCommerce > Impostazioni >
+	 * Integrazione, altrimenti il servizio di riserva di WooCommerce). Solo
+	 * la sigla del paese torna al browser; niente viene salvato.
+	 */
+	function tdtseo_ajax_paese() {
+		nocache_headers();
+		$paese = '';
+		$c     = tdtseo_config();
+		if ( ! empty( $c['geo_ip'] ) && class_exists( 'WC_Geolocation' ) ) {
+			$g = WC_Geolocation::geolocate_ip( '', false, true );
+			if ( is_array( $g ) && ! empty( $g['country'] ) ) {
+				$paese = strtoupper( (string) $g['country'] );
+			}
+		}
+		$paese = strtoupper( (string) apply_filters( 'tdtseo_paese', $paese ) );
+		if ( ! preg_match( '/^[A-Z]{2}$/', $paese ) || in_array( $paese, array( 'XX', 'T1', 'EU', 'AP', 'A1', 'A2', 'O1' ), true ) ) {
+			$paese = '';
+		}
+		wp_send_json( array( 'p' => $paese ) );
+	}
+}
+add_action( 'wp_ajax_tdt_seo_paese', 'tdtseo_ajax_paese' );
+add_action( 'wp_ajax_nopriv_tdt_seo_paese', 'tdtseo_ajax_paese' );
+
+if ( ! function_exists( 'tdtseo_escludi_ottimizzatori' ) ) {
+	/** SiteGround Optimizer (e simili): lo script resta dov'e', prima di TDT Lingue. */
+	function tdtseo_escludi_ottimizzatori( $lista ) {
+		$lista   = is_array( $lista ) ? $lista : array();
+		$lista[] = 'tdt-seo-lingue';
+		$lista[] = 'TDT_SEO';
+		return $lista;
+	}
+}
+foreach ( array( 'sgo_javascript_combine_exclude', 'sgo_js_minify_exclude', 'sgo_js_async_exclude', 'sgo_javascript_combine_excluded_inline_content', 'rocket_exclude_js', 'rocket_exclude_defer_js', 'rocket_delay_js_exclusions', 'litespeed_optimize_js_excludes', 'litespeed_optm_js_defer_exc' ) as $tdtseo_filtro ) {
+	add_filter( $tdtseo_filtro, 'tdtseo_escludi_ottimizzatori' );
+}
+unset( $tdtseo_filtro );
+
+/* =====================================================================
+ * 6. SITEMAP DI TUTTE LE LINGUE: /sitemap-lingue.xml
+ *    Ogni pagina in ogni lingua, con le sue versioni (hreflang).
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_post_fuori' ) ) {
+	/** Pagine e prodotti da non mettere nella sitemap. */
+	function tdtseo_post_fuori( $id ) {
+		$id   = (int) $id;
+		$tipo = get_post_type( $id );
+		if ( function_exists( 'wc_get_page_id' ) && in_array( $id, array( (int) wc_get_page_id( 'cart' ), (int) wc_get_page_id( 'checkout' ), (int) wc_get_page_id( 'myaccount' ) ), true ) ) {
+			return true;
+		}
+		if ( function_exists( 'tdt_lingue_pagine_nutrex' ) && in_array( $id, array_map( 'intval', (array) tdt_lingue_pagine_nutrex() ), true ) ) {
+			return true;
+		}
+		if ( 'product' === $tipo ) {
+			if ( function_exists( 'tdt_lingue_prodotto_nutrex' ) && tdt_lingue_prodotto_nutrex( $id ) ) {
+				return true;
+			}
+			$p = function_exists( 'wc_get_product' ) ? wc_get_product( $id ) : null;
+			if ( $p && 'hidden' === $p->get_catalog_visibility() ) {
+				return true;
+			}
+		}
+		// "noindex" di Yoast (sulla pagina o per tutto il tipo di contenuto)
+		$no = (string) get_post_meta( $id, '_yoast_wpseo_meta-robots-noindex', true );
+		if ( '1' === $no ) {
+			return true;
+		}
+		if ( '' === $no && class_exists( 'WPSEO_Options' ) && WPSEO_Options::get( 'noindex-' . $tipo, false ) ) {
+			return true;
+		}
+		return false;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_sitemap_voci' ) ) {
+	function tdtseo_sitemap_voci() {
+		$voci  = array(
+			array(
+				'url' => home_url( '/' ),
+				'mod' => '',
+			),
+		);
+		$tipi  = array_values( array_filter( array( 'page', 'post', 'product' ), 'post_type_exists' ) );
+		$front = (int) get_option( 'page_on_front' );
+		$ids   = get_posts(
+			array(
+				'post_type'        => $tipi,
+				'post_status'      => 'publish',
+				'has_password'     => false,
+				'numberposts'      => 2000,
+				'fields'           => 'ids',
+				'orderby'          => 'ID',
+				'order'            => 'ASC',
+				'no_found_rows'    => true,
+				'suppress_filters' => true,
+			)
+		);
+		foreach ( $ids as $id ) {
+			if ( (int) $id === $front || tdtseo_post_fuori( $id ) ) {
+				continue;
+			}
+			$voci[] = array(
+				'url' => get_permalink( $id ),
+				'mod' => (string) get_post_modified_time( 'c', true, $id ),
+			);
+		}
+		if ( taxonomy_exists( 'product_cat' ) ) {
+			$nutrex = function_exists( 'tdt_lingue_categorie_nutrex' ) ? array_map( 'intval', (array) tdt_lingue_categorie_nutrex() ) : array();
+			$nutrex[] = (int) get_option( 'default_product_cat', 0 );
+			$terms  = get_terms(
+				array(
+					'taxonomy'   => 'product_cat',
+					'hide_empty' => true,
+				)
+			);
+			foreach ( is_array( $terms ) ? $terms : array() as $t ) {
+				if ( in_array( (int) $t->term_id, $nutrex, true ) ) {
+					continue;
+				}
+				if ( class_exists( 'WPSEO_Taxonomy_Meta' ) && 'noindex' === WPSEO_Taxonomy_Meta::get_term_meta( $t, 'product_cat', 'noindex' ) ) {
+					continue;
+				}
+				$link = get_term_link( $t );
+				if ( ! is_wp_error( $link ) ) {
+					$voci[] = array(
+						'url' => $link,
+						'mod' => '',
+					);
+				}
+			}
+		}
+		return $voci;
+	}
+}
+
+if ( ! function_exists( 'tdtseo_sitemap_xml' ) ) {
+	function tdtseo_sitemap_xml() {
+		$out = '<' . '?xml version="1.0" encoding="UTF-8"?' . ">\n"
+			. '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
+		$visti = array();
+		foreach ( tdtseo_sitemap_voci() as $v ) {
+			$alt = tdtseo_alternative( $v['url'] );
+			if ( ! $alt || isset( $visti[ $alt['it'] ] ) ) {
+				continue;
+			}
+			$visti[ $alt['it'] ] = 1;
+			$link = '';
+			foreach ( $alt as $codice => $u ) {
+				$link .= "\t\t" . '<xhtml:link rel="alternate" hreflang="' . esc_attr( $codice ) . '" href="' . esc_url( $u ) . '" />' . "\n";
+			}
+			foreach ( tdtseo_lingue() as $l ) {
+				$out .= "\t<url>\n\t\t<loc>" . esc_url( $alt[ $l ] ) . "</loc>\n";
+				if ( '' !== $v['mod'] ) {
+					$out .= "\t\t<lastmod>" . esc_html( $v['mod'] ) . "</lastmod>\n";
+				}
+				$out .= $link . "\t</url>\n";
+			}
+		}
+		return $out . "</urlset>\n";
+	}
+}
+
+if ( ! function_exists( 'tdtseo_sitemap' ) ) {
+	function tdtseo_sitemap() {
+		if ( 'it' !== tdtseo_lingua() || is_admin() || ! function_exists( 'tdt_lingue_attivo_qui' ) || empty( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$c    = tdtseo_config();
+		$path = (string) wp_parse_url( (string) $_SERVER['REQUEST_URI'], PHP_URL_PATH ); // phpcs:ignore
+		if ( tdtseo_base() . $c['sitemap'] !== $path ) {
+			return;
+		}
+		$xml = get_transient( 'tdtseo_sitemap' );
+		if ( ! is_string( $xml ) || '' === $xml ) {
+			$xml = tdtseo_sitemap_xml();
+			set_transient( 'tdtseo_sitemap', $xml, 12 * HOUR_IN_SECONDS );
+		}
+		status_header( 200 );
+		header( 'Content-Type: application/xml; charset=UTF-8' );
+		header( 'X-Robots-Tag: noindex, follow' );
+		echo $xml; // phpcs:ignore WordPress.Security.EscapeOutput -- XML costruito con esc_url/esc_attr
+		exit;
+	}
+}
+add_action( 'init', 'tdtseo_sitemap', 99 );
+
+if ( ! function_exists( 'tdtseo_sitemap_in_yoast' ) ) {
+	/** La sitemap delle lingue nell'indice delle sitemap di Yoast (sitemap_index.xml). */
+	function tdtseo_sitemap_in_yoast( $xml ) {
+		if ( ! function_exists( 'tdt_lingue_attivo_qui' ) ) {
+			return $xml;
+		}
+		$c = tdtseo_config();
+		return $xml . '<sitemap><loc>' . esc_url( home_url( '/' . $c['sitemap'] ) ) . '</loc></sitemap>' . "\n";
+	}
+}
+add_filter( 'wpseo_sitemap_index', 'tdtseo_sitemap_in_yoast' );
+
+if ( ! function_exists( 'tdtseo_robots' ) ) {
+	function tdtseo_robots( $txt, $pubblico ) {
+		if ( ! $pubblico || ! function_exists( 'tdt_lingue_attivo_qui' ) ) {
+			return $txt;
+		}
+		$c = tdtseo_config();
+		return rtrim( (string) $txt ) . "\n\nSitemap: " . esc_url_raw( home_url( '/' . $c['sitemap'] ) ) . "\n";
+	}
+}
+add_filter( 'robots_txt', 'tdtseo_robots', 99, 2 );
+
+/* =====================================================================
+ * 7. CACHE DI SITEGROUND
+ *    Quando cambia una pagina o un prodotto si svuotano anche le sue
+ *    versioni /en/ /fr/ /de/ /es/ (quelle italiane le svuota SiteGround).
+ * ===================================================================== */
+
+if ( ! function_exists( 'tdtseo_svuota' ) ) {
+	function tdtseo_svuota( $urls ) {
+		delete_transient( 'tdtseo_sitemap' );
+		if ( ! function_exists( 'sg_cachepress_purge_cache' ) ) {
+			return;
+		}
+		$fatti = array();
+		foreach ( (array) $urls as $u ) {
+			if ( ! is_string( $u ) || '' === $u ) {
+				continue;
+			}
+			foreach ( tdtseo_lingue() as $l ) {
+				$x = 'it' === $l ? null : tdtseo_url_lingua( $u, $l );
+				if ( null !== $x && ! isset( $fatti[ $x ] ) ) {
+					$fatti[ $x ] = 1;
+					sg_cachepress_purge_cache( $x );
+				}
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'tdtseo_svuota_post' ) ) {
+	function tdtseo_svuota_post( $id ) {
+		$id = (int) $id;
+		if ( ! $id || wp_is_post_revision( $id ) || wp_is_post_autosave( $id ) ) {
+			return;
+		}
+		delete_transient( 'tdtseo_sitemap' );
+		$tipo = get_post_type( $id );
+		if ( 'product_variation' === $tipo ) {
+			$id   = (int) wp_get_post_parent_id( $id );
+			$tipo = 'product';
+		}
+		if ( ! in_array( $tipo, array( 'page', 'post', 'product' ), true ) || 'publish' !== get_post_status( $id ) ) {
+			return;
+		}
+		$urls = array( get_permalink( $id ), home_url( '/' ) );
+		if ( 'product' === $tipo ) {
+			if ( function_exists( 'wc_get_page_permalink' ) ) {
+				$urls[] = wc_get_page_permalink( 'shop' );
+			}
+			$terms = get_the_terms( $id, 'product_cat' );
+			foreach ( is_array( $terms ) ? $terms : array() as $t ) {
+				$link = get_term_link( $t );
+				if ( ! is_wp_error( $link ) ) {
+					$urls[] = $link;
+				}
+			}
+		}
+		tdtseo_svuota( $urls );
+	}
+}
+add_action( 'save_post', 'tdtseo_svuota_post', 99 );
+
+if ( ! function_exists( 'tdtseo_svuota_prodotto' ) ) {
+	/** Scorte e disponibilita' cambiate (anche dagli ordini). */
+	function tdtseo_svuota_prodotto( $prodotto ) {
+		if ( is_object( $prodotto ) && method_exists( $prodotto, 'get_id' ) ) {
+			tdtseo_svuota_post( $prodotto->get_id() );
+		} elseif ( is_numeric( $prodotto ) ) {
+			tdtseo_svuota_post( (int) $prodotto );
+		}
+	}
+}
+add_action( 'woocommerce_product_set_stock', 'tdtseo_svuota_prodotto' );
+add_action( 'woocommerce_variation_set_stock', 'tdtseo_svuota_prodotto' );
+add_action( 'woocommerce_product_set_stock_status', 'tdtseo_svuota_prodotto' );
+
+if ( ! function_exists( 'tdtseo_svuota_tutto' ) ) {
+	/** Traduzioni aggiunte o impostazioni di TDT Lingue cambiate: valgono per tutte le pagine. */
+	function tdtseo_svuota_tutto() {
+		delete_transient( 'tdtseo_sitemap' );
+		if ( function_exists( 'sg_cachepress_purge_everything' ) ) {
+			sg_cachepress_purge_everything();
+		} elseif ( function_exists( 'sg_cachepress_purge_cache' ) ) {
+			sg_cachepress_purge_cache();
+		}
+	}
+}
+foreach ( array( 'update_option_tdt_lingue_personali', 'add_option_tdt_lingue_personali', 'update_option_tdt_lingue_impostazioni' ) as $tdtseo_azione ) {
+	add_action( $tdtseo_azione, 'tdtseo_svuota_tutto' );
+}
+unset( $tdtseo_azione );
